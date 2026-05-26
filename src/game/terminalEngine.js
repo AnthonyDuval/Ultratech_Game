@@ -111,7 +111,7 @@ export async function executeTerminalCommand(cmd, state, dispatch, addLine) {
         if (!resolved) {
           addLine(`[SCAN] Cible "${arg}" — aucune correspondance`, 'error');
           suggestCorrection(addLine, suggestTargetCorrection('scan', arg, state));
-          addLine('Tapez objectif ou hint pour un rappel.', 'info');
+          addLine('Tapez hint pour un fragment.', 'info');
           break;
         }
         const { cfg } = resolved;

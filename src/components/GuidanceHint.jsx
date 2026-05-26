@@ -11,7 +11,10 @@ const GuidanceHint = memo(function GuidanceHint({
 
   const handleDismiss = useCallback(() => {
     dispatch({ type: 'DISABLE_GUIDANCE' });
-  }, [dispatch]);
+    if (help?.source === 'nova') {
+      dispatch({ type: 'SET_NARRATIVE_FLAG', flag: 'stuck_hint_active', value: false });
+    }
+  }, [dispatch, help?.source]);
 
   const handleOpen = useCallback((appId) => {
     if (appId && onOpenApp) onOpenApp(appId);
@@ -35,17 +38,22 @@ const GuidanceHint = memo(function GuidanceHint({
 
   useEffect(() => {
     if (!help?.autoDismiss) return undefined;
+    const delay = help.minimal ? 6000 : 8000;
     const timer = setTimeout(() => {
       dispatch({ type: 'DISABLE_GUIDANCE' });
-    }, 8000);
+      if (help?.source === 'nova') {
+        dispatch({ type: 'SET_NARRATIVE_FLAG', flag: 'stuck_hint_active', value: false });
+      }
+    }, delay);
     return () => clearTimeout(timer);
-  }, [help?.id, help?.autoDismiss, dispatch]);
+  }, [help?.id, help?.autoDismiss, help?.minimal, help?.source, dispatch]);
 
   if (!help) return null;
 
+  const minimal = Boolean(help.minimal);
   const terminalOpen = openApps.includes('terminal');
   const targetApp = help.targetApp;
-  const showOpen = targetApp && !openApps.includes(targetApp);
+  const showOpen = !minimal && targetApp && !openApps.includes(targetApp);
   const toneClass = help.tone === 'nova' ? 'guidance-hint--nova' : help.tone === 'cryptic' ? 'guidance-hint--cryptic' : '';
 
   return (
@@ -54,7 +62,7 @@ const GuidanceHint = memo(function GuidanceHint({
         <span className="guidance-badge">{help.title ?? 'PROCHAINE ACTION'}</span>
         <p className="guidance-text">{help.message}</p>
 
-        {(help.target || help.protocol) && (
+        {!minimal && (help.target || help.protocol) && (
           <div className="guidance-rp-tags">
             {help.target && (
               <span className="guidance-rp-tag">
@@ -71,7 +79,7 @@ const GuidanceHint = memo(function GuidanceHint({
           </div>
         )}
 
-        {help.revealCommand && help.command && (
+        {!minimal && help.revealCommand && help.command && (
           <div className="guidance-command-block">
             <span className="guidance-command-label">Commande probable</span>
             <div className="guidance-command-row">
@@ -104,7 +112,7 @@ const GuidanceHint = memo(function GuidanceHint({
         )}
 
         <div className="guidance-actions">
-          {help.secondaryActions
+          {!minimal && help.secondaryActions
             ?.filter(({ app }) => !openApps.includes(app))
             .map(({ app, label }) => (
               <button
@@ -125,9 +133,11 @@ const GuidanceHint = memo(function GuidanceHint({
               Ouvrir {help.actionLabel}
             </button>
           )}
-          <button type="button" className="btn guidance-btn-dismiss" onClick={handleDismiss}>
-            Masquer l&apos;aide
-          </button>
+          {!minimal && (
+            <button type="button" className="btn guidance-btn-dismiss" onClick={handleDismiss}>
+              Masquer l&apos;aide
+            </button>
+          )}
         </div>
       </div>
     </aside>

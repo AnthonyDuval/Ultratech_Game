@@ -24,7 +24,6 @@ import {
   getProtocolLabel,
   getHintLabel,
   getMissionRiskLabel,
-  isMission1Phase,
 } from '../game/guidanceLevel.js';
 
 const MissionCard = memo(function MissionCard({
@@ -35,7 +34,6 @@ const MissionCard = memo(function MissionCard({
   unlockedMails,
   openApps,
   guidanceLevel,
-  isM1,
   suspicionUltraTech,
 }) {
   const progress = getMissionProgress(mission, narrativeFlags);
@@ -48,9 +46,9 @@ const MissionCard = memo(function MissionCard({
   const activityLabel = getMissionActivityLabel(activity);
   const guided = isGuidedMission(mission);
   const isFree = mission.guidanceLevel === 'free';
+  const isTutorial = mission.guidanceLevel === 'tutorial';
   const nextStep = getNextStepText(mission, narrativeFlags);
   const currentObjective = getCurrentObjective(mission, narrativeFlags);
-  const suggested = getSuggestedCommand(mission, narrativeFlags);
   const target = getStepTarget(mission, narrativeFlags);
   const protocol = getStepProtocol(mission, narrativeFlags);
   const statusClass = activity === 'pending' ? 'ops-status--pending' : 'ops-status--active';
@@ -60,21 +58,26 @@ const MissionCard = memo(function MissionCard({
     && step?.flag === 'scan_0x7f'
     && !narrativeFlags.scan_0x7f;
 
-  const showCommand = isM1ScanPending
-    ? shouldRevealScanCommand(stateSlice, openApps)
-    : shouldShowMissionCommand(stateSlice, mission);
+  const showCommand = isTutorial && (
+    isM1ScanPending
+      ? shouldRevealScanCommand(stateSlice, openApps)
+      : shouldShowMissionCommand(stateSlice, mission)
+  );
 
-  const showNextStep = mission.guidanceLevel === 'tutorial' && nextStep;
+  const showNextStep = isTutorial && nextStep;
+  const showRisk = !isTutorial;
   const protocolLabel = getProtocolLabel(mission, guidanceLevel);
   const hintLabel = getHintLabel(mission);
 
   const displayObjective = isM1ScanPending ? 'Analyser la cible 0x7f' : currentObjective;
 
-  const displayHint = isM1
+  const displayHint = isTutorial
     ? (isM1ScanPending && !hasAnonScanHelp(stateSlice)
       ? 'Un contact anonyme pourrait vous aider si vous hésitez.'
       : step?.hint)
     : (step?.rpHint ?? step?.hint);
+
+  const suggested = showCommand ? getSuggestedCommand(mission, narrativeFlags) : null;
 
   const showJournal = guided || isFree;
 
@@ -125,7 +128,7 @@ const MissionCard = memo(function MissionCard({
               <p className="ops-journal-value">{displayHint}</p>
             </div>
           )}
-          {isFree && (
+          {showRisk && (
             <div className="ops-journal-block ops-journal-block--risk">
               <span className="ops-journal-label">Niveau de risque</span>
               <p className="ops-journal-value">{getMissionRiskLabel({ suspicionUltraTech })}</p>
@@ -167,7 +170,6 @@ export default function MissionApp({ state, openApps = [] }) {
   } = state;
 
   const guidanceLevel = useMemo(() => computeGuidanceLevel(state), [state]);
-  const isM1 = useMemo(() => isMission1Phase(state), [state]);
 
   const active = useMemo(
     () => getActiveDiscoveredMissions(discoveredMissions, completedMissions),
@@ -198,7 +200,7 @@ export default function MissionApp({ state, openApps = [] }) {
         {active.length === 0 ? (
           <p className="ops-empty">
             {isGhostSignalDone(completedMissions)
-              ? 'Consultez vos nouveaux messages dans Mails.'
+              ? 'Aucune piste active dans le journal.'
               : 'Aucun objectif actif. Consultez vos Mails pour de nouveaux briefings.'}
           </p>
         ) : (
@@ -212,7 +214,6 @@ export default function MissionApp({ state, openApps = [] }) {
               unlockedMails={unlockedMails}
               openApps={openApps}
               guidanceLevel={guidanceLevel}
-              isM1={isM1}
               suspicionUltraTech={suspicionUltraTech ?? 0}
             />
           ))

@@ -1,5 +1,5 @@
 /**
- * Indices NOVA — discrets, jamais de commande complète hors mission 1
+ * Indices NOVA — cryptiques, jamais de commande complète hors mission 1
  */
 
 import { getPrimaryActiveMission, getCurrentStep } from '../data/missions.js';
@@ -11,14 +11,14 @@ const STUCK_HINTS = {
     connect_0x7f: 'Analyse faite. Le tunnel attend.',
   },
   'black-relay': {
-    scan_black07: 'black-07 répond aux requêtes de surface.',
+    scan_black07: 'Le relais refuse une connexion directe.',
     connect_black07: 'Le relais refuse toute connexion non analysée.',
   },
   'dead-archive': {
-    decrypt_archive2077: 'archive_2077 n\'est pas lisible en clair.',
+    decrypt_archive2077: 'Le protocole existe déjà dans les archives.',
   },
   surveillance: {
-    trace_cleared: 'TRACE : activité résiduelle détectée.',
+    trace_cleared: 'Ils te voient encore. Quelque chose efface les traces.',
   },
 };
 
@@ -27,6 +27,7 @@ const RP_FRAGMENTS = [
   'Ils observent chaque hésitation.',
   'Un fragment manque encore dans le puzzle.',
   'Le terminal connaît les formes. Pas les réponses.',
+  'Les archives murmurent ce que les menus cachent.',
 ];
 
 export function getStuckHintForMission(missionId, stepFlag) {
@@ -60,12 +61,13 @@ export function buildNovaStuckHelp(state) {
     source: 'nova',
   };
 
-  if (step?.target) help.target = step.target;
-  if (step?.protocol) help.protocol = step.protocol;
-
-  if (isMission1Phase(state) && mission.id === 'ghost-signal' && step?.suggestedCommand) {
-    help.revealCommand = true;
-    help.command = step.suggestedCommand;
+  if (isMission1Phase(state) && mission.id === 'ghost-signal') {
+    if (step?.target) help.target = step.target;
+    if (step?.protocol) help.protocol = step.protocol;
+    if (step?.suggestedCommand) {
+      help.revealCommand = true;
+      help.command = step.suggestedCommand;
+    }
   }
 
   return help;
@@ -79,10 +81,9 @@ export function getNovaTerminalHint(state) {
   if (!mission) return getRandomNovaFragment();
 
   const step = getCurrentStep(mission, state.narrativeFlags ?? {});
-  if (step?.rpHint) return step.rpHint;
-
   const specific = step ? getStuckHintForMission(mission.id, step.flag) : null;
   if (specific) return specific;
+  if (step?.rpHint) return step.rpHint;
 
   if (step?.hint && mission.guidanceLevel === 'tutorial') return step.hint;
 

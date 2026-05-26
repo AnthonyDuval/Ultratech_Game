@@ -1,5 +1,5 @@
 /**
- * Contexte objectif terminal — objectif / hint (RP, évolutif)
+ * Contexte objectif terminal — RP, sans commandes après mission 1
  */
 
 import {
@@ -7,7 +7,7 @@ import {
   getCurrentStep,
   getCurrentObjective,
 } from '../data/missions.js';
-import { computeGuidanceLevel, shouldRevealCommandInHelp, isMission1Phase } from './guidanceLevel.js';
+import { shouldRevealCommandInHelp, isMission1Phase } from './guidanceLevel.js';
 import { getNovaTerminalHint } from './novaHints.js';
 
 export function getObjectiveContext(state) {
@@ -15,9 +15,14 @@ export function getObjectiveContext(state) {
     state.discoveredMissions ?? [],
     state.completedMissions ?? []
   );
-  const level = computeGuidanceLevel(state);
 
   if (!mission) {
+    if (!isMission1Phase(state)) {
+      return {
+        title: 'Fragment',
+        lines: ['Aucune piste active. Le réseau garde le silence.'],
+      };
+    }
     const read = state.readMails ?? [];
     if (!read.includes('mail-welcome')) {
       return {
@@ -39,6 +44,15 @@ export function getObjectiveContext(state) {
 
   const flags = state.narrativeFlags ?? {};
   const step = getCurrentStep(mission, flags);
+  const m1 = isMission1Phase(state);
+
+  if (!m1) {
+    const lines = [`Mission : ${mission.title}`];
+    if (step?.rpHint) lines.push(step.rpHint);
+    else lines.push('Croisez mails, logs et fragments.');
+    return { title: 'Fragment', lines };
+  }
+
   const lines = [
     `Mission : ${mission.title}`,
     `Objectif : ${getCurrentObjective(mission, flags)}`,
@@ -46,18 +60,13 @@ export function getObjectiveContext(state) {
 
   if (step?.target) lines.push(`Cible : ${step.target}`);
   if (step?.protocol) lines.push(`Protocole observé : ${step.protocol}`);
-
-  if (step?.rpHint && !isMission1Phase(state)) {
-    lines.push(step.rpHint);
-  } else if (step?.hint && isMission1Phase(state)) {
-    lines.push(`Indice : ${step.hint}`);
-  }
+  if (step?.hint) lines.push(`Indice : ${step.hint}`);
 
   if (shouldRevealCommandInHelp(state) && step?.suggestedCommand && mission.guidanceLevel === 'tutorial') {
     lines.push(`Commande probable : ${step.suggestedCommand}`);
   }
 
-  return { title: level >= 1 ? 'Fragment' : 'Objectif actuel', lines };
+  return { title: 'Objectif actuel', lines };
 }
 
 export function getHintContext(state) {
@@ -67,7 +76,12 @@ export function getHintContext(state) {
   );
 
   if (!mission) {
-    return { title: 'Indice', lines: ['Lisez vos mails et consultez Opérations.'] };
+    return {
+      title: 'NOVA',
+      lines: [isMission1Phase(state)
+        ? 'Lisez vos mails et consultez Opérations.'
+        : 'Les fragments ne passent plus par les menus.'],
+    };
   }
 
   const flags = state.narrativeFlags ?? {};

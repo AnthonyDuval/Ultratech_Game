@@ -109,6 +109,11 @@ export default function Desktop({ state, dispatch }) {
 
   const openApps = useMemo(() => windows.map((w) => w.id), [windows]);
 
+  const ghostSignalDone = useMemo(
+    () => (state.completedMissions ?? []).includes('ghost-signal'),
+    [state.completedMissions]
+  );
+
   const activeHelp = useMemo(
     () => {
       if (!state.tutorialCompleted || betaNoticeOpen) return null;
@@ -184,7 +189,7 @@ export default function Desktop({ state, dispatch }) {
         suspicion={state.suspicionUltraTech ?? 0}
       />
 
-      {activeHelp?.type === 'objective' && (
+      {activeHelp?.type === 'objective' && !ghostSignalDone && (
         <CurrentObjectiveWidget
           help={activeHelp}
           openApps={openApps}

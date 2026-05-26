@@ -1,9 +1,10 @@
 /**
- * État objectif partagé — widget bureau (fallback compact)
+ * État objectif partagé — widget bureau (fallback compact, mission 1 uniquement)
  */
 
 import { getMissionForFlag } from '../data/missions.js';
 import { getObjectiveWidgetData } from './activeHelp.js';
+import { isMission1Phase } from './guidanceLevel.js';
 
 export { getObjectiveWidgetData };
 
@@ -18,12 +19,19 @@ export function getProgressNotification(flagName, state) {
   const isComplete = done >= mission.steps.length;
 
   if (flagName.includes('scan') && !isComplete) {
-    const nextStep = mission.steps.find((s) => !flags[s.flag]);
-    const nextCmd = nextStep?.suggestedCommand;
+    if (mission.id === 'ghost-signal' && isMission1Phase(state)) {
+      const nextStep = mission.steps.find((s) => !flags[s.flag]);
+      const nextCmd = nextStep?.suggestedCommand;
+      return {
+        type: 'objective-updated',
+        title: 'Analyse terminée',
+        message: nextCmd ? `Nouvelle étape : ${nextCmd}` : `${mission.title} — consultez Opérations.`,
+      };
+    }
     return {
       type: 'objective-updated',
       title: 'Analyse terminée',
-      message: nextCmd ? `Nouvelle étape : ${nextCmd}` : `${mission.title} — consultez Opérations.`,
+      message: 'Fragment capté. Croisez vos sources.',
     };
   }
 

@@ -63,24 +63,10 @@ export function shouldShowMissionCommand(state, mission) {
   return Boolean(step?.suggestedCommand);
 }
 
-/** GuidanceHint visible — rare après mission 1 */
+/** GuidanceHint visible — mission 1 uniquement, ou blocage NOVA */
 export function shouldShowGuidanceHint(state) {
   if (state.narrativeFlags?.stuck_hint_active) return true;
-  if (isMission1Phase(state)) return true;
-  return hasUnreadNarrativeMail(state);
-}
-
-function hasUnreadNarrativeMail(state) {
-  const read = state.readMails ?? [];
-  const unlocked = state.unlockedMails ?? [];
-  const pending = [
-    'mail-relay-hint',
-    'mail-relay-dilemma',
-    'mail-archive-leak',
-    'mail-ultratech-alert',
-    'mail-nova-whisper',
-  ];
-  return pending.some((id) => unlocked.includes(id) && !read.includes(id));
+  return isMission1Phase(state);
 }
 
 export function getProtocolLabel(mission, guidanceLevel) {
