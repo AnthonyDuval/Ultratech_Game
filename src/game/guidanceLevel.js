@@ -3,6 +3,7 @@
  */
 
 import { getPrimaryActiveMission } from '../data/missions.js';
+import { isGhostSignalDone } from './missionGuards.js';
 
 /** @returns {0|1|2|3} */
 export function computeGuidanceLevel(state) {
@@ -38,47 +39,67 @@ function getPlayMinutes(state) {
   return Math.max(0, ms / 60000);
 }
 
+export function isMission1Phase(state) {
+  return !isGhostSignalDone(state.completedMissions ?? []);
+}
+
 export function getGuidanceTitle(level, source = 'system') {
   if (source === 'nova') return 'NOVA';
   if (source === 'anon') return 'FRAGMENT';
-  switch (level) {
-    case 0: return 'PROCHAINE ACTION';
-    case 1: return 'INDICE';
-    case 2: return 'SURVEILLANCE';
-    default: return '…';
-  }
+  if (level === 0) return 'PROCHAINE ACTION';
+  return 'SIGNAL';
 }
 
-/** Afficher la commande exacte dans l'aide UI */
-export function shouldRevealCommandInHelp(state, missionGuidanceLevel) {
-  const level = computeGuidanceLevel(state);
-  const stuck = state.narrativeFlags?.stuck_hint_active;
-
-  if (missionGuidanceLevel === 'tutorial') return true;
-  if (missionGuidanceLevel === 'semi') return level < 1 || stuck;
-  if (stuck) return true;
-  return false;
+/** Commande exacte — mission 1 uniquement */
+export function shouldRevealCommandInHelp(state) {
+  return isMission1Phase(state);
 }
 
-/** Afficher « commande probable » dans Opérations */
+/** « Commande probable » dans Opérations — mission 1 uniquement */
 export function shouldShowMissionCommand(state, mission) {
-  if (!mission) return false;
+  if (!mission || !isMission1Phase(state)) return false;
+  if (mission.guidanceLevel !== 'tutorial' || mission.id !== 'ghost-signal') return false;
   const step = mission.steps?.find((s) => !state.narrativeFlags?.[s.flag]);
-  if (!step?.suggestedCommand) return false;
-
-  if (mission.guidanceLevel === 'tutorial') {
-    return mission.id === 'ghost-signal';
-  }
-  if (mission.guidanceLevel === 'semi') {
-    return computeGuidanceLevel(state) === 0;
-  }
-  return false;
+  return Boolean(step?.suggestedCommand);
 }
 
+/** GuidanceHint visible — rare après mission 1 */
 export function shouldShowGuidanceHint(state) {
-  const level = computeGuidanceLevel(state);
-  if (level >= 3 && !state.narrativeFlags?.stuck_hint_active) return false;
-  return true;
+  if (state.narrativeFlags?.stuck_hint_active) return true;
+  if (isMission1Phase(state)) return true;
+  return hasUnreadNarrativeMail(state);
+}
+
+function hasUnreadNarrativeMail(state) {
+  const read = state.readMails ?? [];
+  const unlocked = state.unlockedMails ?? [];
+  const pending = [
+    'mail-relay-hint',
+    'mail-relay-dilemma',
+    'mail-archive-leak',
+    'mail-ultratech-alert',
+    'mail-nova-whisper',
+  ];
+  return pending.some((id) => unlocked.includes(id) && !read.includes(id));
+}
+
+export function getProtocolLabel(mission, guidanceLevel) {
+  if (mission?.guidanceLevel === 'tutorial') return 'Protocole suggéré';
+  if (mission?.guidanceLevel === 'semi') return 'Protocole observé';
+  return 'Protocole';
+}
+
+export function getHintLabel(mission) {
+  if (mission?.guidanceLevel === 'free') return 'Fragment';
+  if (mission?.guidanceLevel === 'semi') return 'Indice RP';
+  return 'Indice';
+}
+
+export function getMissionRiskLabel(state) {
+  const suspicion = state.suspicionUltraTech ?? 0;
+  if (suspicion >= 60) return 'Élevé';
+  if (suspicion >= 30) return 'Modéré';
+  return 'Contenu';
 }
 
 export function getActiveMissionGuidanceLevel(state) {

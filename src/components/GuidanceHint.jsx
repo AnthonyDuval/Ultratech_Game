@@ -1,4 +1,4 @@
-import { useCallback, useState, memo } from 'react';
+import { useCallback, useState, useEffect, memo } from 'react';
 
 const GuidanceHint = memo(function GuidanceHint({
   help,
@@ -33,6 +33,14 @@ const GuidanceHint = memo(function GuidanceHint({
     onInsertCommand(help.command);
   }, [help?.command, onInsertCommand]);
 
+  useEffect(() => {
+    if (!help?.autoDismiss) return undefined;
+    const timer = setTimeout(() => {
+      dispatch({ type: 'DISABLE_GUIDANCE' });
+    }, 8000);
+    return () => clearTimeout(timer);
+  }, [help?.id, help?.autoDismiss, dispatch]);
+
   if (!help) return null;
 
   const terminalOpen = openApps.includes('terminal');
@@ -55,7 +63,9 @@ const GuidanceHint = memo(function GuidanceHint({
             )}
             {help.protocol && (
               <span className="guidance-rp-tag guidance-rp-tag--protocol">
-                Protocole <strong>{help.protocol}</strong>
+                {help.tone === 'cryptic' || (help.guidanceLevel ?? 0) >= 1
+                  ? <>Protocole observé <strong>{help.protocol}</strong></>
+                  : <>Protocole <strong>{help.protocol}</strong></>}
               </span>
             )}
           </div>

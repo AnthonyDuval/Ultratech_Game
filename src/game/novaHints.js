@@ -1,31 +1,32 @@
 /**
- * Indices NOVA — remplacent le ton tutoriel en milieu/fin de jeu
+ * Indices NOVA — discrets, jamais de commande complète hors mission 1
  */
 
 import { getPrimaryActiveMission, getCurrentStep } from '../data/missions.js';
+import { isMission1Phase } from './guidanceLevel.js';
 
 const STUCK_HINTS = {
   'ghost-signal': {
     scan_0x7f: 'Tu regardes au mauvais endroit. Essaie le protocole SCAN.',
-    connect_0x7f: 'Le terminal connaît déjà la réponse. CONNECT.',
+    connect_0x7f: 'Analyse faite. Le tunnel attend.',
   },
   'black-relay': {
-    scan_black07: 'Le relais écoute encore. SCAN avant toute trace.',
-    connect_black07: 'Certaines connexions ne doivent pas être tracées. CONNECT.',
+    scan_black07: 'black-07 répond aux requêtes de surface.',
+    connect_black07: 'Le relais refuse toute connexion non analysée.',
   },
   'dead-archive': {
-    decrypt_archive2077: 'Le protocole n\'est pas mort. DECRYPT archive_2077.',
+    decrypt_archive2077: 'archive_2077 n\'est pas lisible en clair.',
   },
   surveillance: {
-    trace_cleared: 'Efface avant qu\'ils ne te voient. TRACE.',
+    trace_cleared: 'TRACE : activité résiduelle détectée.',
   },
 };
 
 const RP_FRAGMENTS = [
-  'Tu perds du temps à chercher un bouton.',
   'Le réseau parle en protocoles, pas en menus.',
   'Ils observent chaque hésitation.',
-  'Le terminal connaît déjà la réponse.',
+  'Un fragment manque encore dans le puzzle.',
+  'Le terminal connaît les formes. Pas les réponses.',
 ];
 
 export function getStuckHintForMission(missionId, stepFlag) {
@@ -41,6 +42,7 @@ export function buildNovaStuckHelp(state) {
     state.discoveredMissions ?? [],
     state.completedMissions ?? []
   );
+
   if (!mission) {
     return {
       id: 'nova-stuck-idle',
@@ -54,14 +56,14 @@ export function buildNovaStuckHelp(state) {
 
   const help = {
     id: `nova-stuck-${mission.id}`,
-    message: specific ?? getRandomNovaFragment(),
+    message: specific ?? step?.rpHint ?? getRandomNovaFragment(),
     source: 'nova',
   };
 
   if (step?.target) help.target = step.target;
   if (step?.protocol) help.protocol = step.protocol;
 
-  if (specific && step?.suggestedCommand && mission.guidanceLevel !== 'free') {
+  if (isMission1Phase(state) && mission.id === 'ghost-signal' && step?.suggestedCommand) {
     help.revealCommand = true;
     help.command = step.suggestedCommand;
   }
@@ -78,8 +80,11 @@ export function getNovaTerminalHint(state) {
 
   const step = getCurrentStep(mission, state.narrativeFlags ?? {});
   if (step?.rpHint) return step.rpHint;
-  if (step?.hint && mission.guidanceLevel === 'free') return step.hint;
 
   const specific = step ? getStuckHintForMission(mission.id, step.flag) : null;
-  return specific ?? step?.hint ?? getRandomNovaFragment();
+  if (specific) return specific;
+
+  if (step?.hint && mission.guidanceLevel === 'tutorial') return step.hint;
+
+  return getRandomNovaFragment();
 }

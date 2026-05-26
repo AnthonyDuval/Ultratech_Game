@@ -48,6 +48,13 @@
   font-family: var(--font-mono);
 }
 
+.profile-alignment {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  font-size: var(--text-base);
+  color: var(--magenta);
+}
+
 .profile-stats {
   display: grid;
   grid-template-columns: 1fr 1fr;

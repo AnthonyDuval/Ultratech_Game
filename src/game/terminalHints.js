@@ -6,10 +6,8 @@ import {
   getPrimaryActiveMission,
   getCurrentStep,
   getCurrentObjective,
-  getSuggestedCommand,
-  getNextStepText,
 } from '../data/missions.js';
-import { computeGuidanceLevel, shouldRevealCommandInHelp } from './guidanceLevel.js';
+import { computeGuidanceLevel, shouldRevealCommandInHelp, isMission1Phase } from './guidanceLevel.js';
 import { getNovaTerminalHint } from './novaHints.js';
 
 export function getObjectiveContext(state) {
@@ -47,19 +45,19 @@ export function getObjectiveContext(state) {
   ];
 
   if (step?.target) lines.push(`Cible : ${step.target}`);
-  if (step?.protocol) lines.push(`Protocole : ${step.protocol}`);
-  if (step?.rpHint && level >= 2) {
+  if (step?.protocol) lines.push(`Protocole observé : ${step.protocol}`);
+
+  if (step?.rpHint && !isMission1Phase(state)) {
     lines.push(step.rpHint);
-  } else if (step?.hint) {
+  } else if (step?.hint && isMission1Phase(state)) {
     lines.push(`Indice : ${step.hint}`);
   }
 
-  const cmd = getSuggestedCommand(mission, flags);
-  if (cmd && shouldRevealCommandInHelp(state, mission.guidanceLevel)) {
-    lines.push(`Commande probable : ${cmd}`);
+  if (shouldRevealCommandInHelp(state) && step?.suggestedCommand && mission.guidanceLevel === 'tutorial') {
+    lines.push(`Commande probable : ${step.suggestedCommand}`);
   }
 
-  return { title: level >= 2 ? 'Fragment' : 'Objectif actuel', lines };
+  return { title: level >= 1 ? 'Fragment' : 'Objectif actuel', lines };
 }
 
 export function getHintContext(state) {
@@ -67,7 +65,6 @@ export function getHintContext(state) {
     state.discoveredMissions ?? [],
     state.completedMissions ?? []
   );
-  const level = computeGuidanceLevel(state);
 
   if (!mission) {
     return { title: 'Indice', lines: ['Lisez vos mails et consultez Opérations.'] };
@@ -76,29 +73,27 @@ export function getHintContext(state) {
   const flags = state.narrativeFlags ?? {};
   const step = getCurrentStep(mission, flags);
 
-  if (level >= 2) {
+  if (!isMission1Phase(state)) {
     return {
       title: 'NOVA',
       lines: [getNovaTerminalHint(state)],
     };
   }
 
-  if (step?.protocol && step?.target && mission.guided) {
-    const lines = [`Protocole ${step.protocol} — cible ${step.target}.`];
-    if (level === 0 && step.suggestedCommand) {
-      lines.push(`Forme attendue : ${step.suggestedCommand.split(' ')[0]} <cible>`);
-    } else {
-      lines.push('Composez la commande dans le terminal.');
-    }
-    return { title: 'Indice', lines };
+  if (step?.protocol && step?.target) {
+    return {
+      title: 'Indice',
+      lines: [
+        `Protocole ${step.protocol} — cible ${step.target}.`,
+        'Composez [protocole] [cible] dans le terminal.',
+      ],
+    };
   }
 
-  const next = getNextStepText(mission, flags);
-  if (next) {
-    return { title: 'Indice', lines: [next] };
-  }
-
-  return { title: 'Indice', lines: [step?.hint ?? 'Consultez Opérations.'] };
+  return {
+    title: 'Indice',
+    lines: [step?.hint ?? 'Consultez Opérations et vos mails.'],
+  };
 }
 
 export const APPS_HELP = [

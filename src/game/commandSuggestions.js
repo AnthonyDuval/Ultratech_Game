@@ -67,18 +67,6 @@ export function suggestTargetCorrection(command, arg, state) {
     }
   }
 
-  if (command === 'scan' && completed.includes('ghost-signal') && !flags.scan_black07) {
-    if (arg.includes('black') || arg.includes('07') || arg.includes('relay')) {
-      return 'scan black-07';
-    }
-  }
-
-  if (command === 'connect' && flags.scan_black07 && !flags.connect_black07) {
-    if (arg.includes('black') || arg.includes('07')) {
-      return 'connect black-07';
-    }
-  }
-
   return null;
 }
 

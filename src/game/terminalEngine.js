@@ -14,6 +14,7 @@ import { getObjectiveContext, getHintContext, APPS_HELP } from './terminalHints.
 import { suggestCommandCorrection, suggestTargetCorrection } from './commandSuggestions.js';
 import { getProgressNotification } from './objectiveState.js';
 import { markProgress, recordTerminalCommand } from './stuckTimer.js';
+import { getNarrativeTerminalLines } from './narrativeTerminal.js';
 
 async function typeLines(addLine, lines, type = 'info', ms = 100) {
   for (const line of lines) {
@@ -49,6 +50,11 @@ export async function executeTerminalCommand(cmd, state, dispatch, addLine) {
   const arg = parts.slice(1).join(' ').trim();
 
   recordTerminalCommand(state, dispatch, trimmed);
+
+  const narrativeLines = getNarrativeTerminalLines(state, command);
+  for (const line of narrativeLines) {
+    addLine(line, line.includes('[!!!]') || line.includes('[SEC]') ? 'warn' : 'info');
+  }
 
   switch (command) {
     case 'help':
@@ -95,7 +101,9 @@ export async function executeTerminalCommand(cmd, state, dispatch, addLine) {
       addLine('[SCAN] Initialisation...', 'info');
       await delay(350);
       if (!arg) {
-        addLine('Usage : scan <cible>. Exemple : scan 0x7f', 'warn');
+        addLine(isEarlyGame(state)
+          ? 'Usage : scan <cible>. Exemple : scan 0x7f'
+          : 'Usage : scan <cible> — analyse une cible réseau.', 'warn');
         break;
       }
       {
@@ -123,7 +131,9 @@ export async function executeTerminalCommand(cmd, state, dispatch, addLine) {
 
     case 'connect':
       if (!arg) {
-        addLine('Usage : connect <cible>. Exemple : connect 0x7f', 'warn');
+        addLine(isEarlyGame(state)
+          ? 'Usage : connect <cible>. Exemple : connect 0x7f'
+          : 'Usage : connect <cible> — établit une connexion distante.', 'warn');
         break;
       }
       {
@@ -159,7 +169,7 @@ export async function executeTerminalCommand(cmd, state, dispatch, addLine) {
 
     case 'decrypt':
       if (!arg) {
-        addLine('Usage : decrypt <identifiant>. Exemple : decrypt archive_2077', 'warn');
+        addLine('Usage : decrypt <identifiant> — tente un déchiffrement.', 'warn');
         break;
       }
       {

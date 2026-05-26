@@ -1,5 +1,7 @@
+import { mergeNarrativeDefaults } from '../game/narrativeState.js';
+
 const SAVE_KEY = 'ultratech-os-save';
-const SAVE_VERSION = 1;
+const SAVE_VERSION = 2;
 const MAX_TERMINAL_LOGS = 50;
 
 const PERSIST_FIELDS = [
@@ -13,6 +15,10 @@ const PERSIST_FIELDS = [
   'unlockedMails',
   'readMails',
   'narrativeFlags',
+  'choices',
+  'factionAlignment',
+  'trustUltraTech',
+  'trustNova',
   'discoveredNodes',
   'discoveredClues',
   'missionSteps',
@@ -82,6 +88,7 @@ export function sanitizeSave(raw) {
 
   const logs = asArray(raw.terminalLogs).filter((l) => typeof l === 'string');
   const migrated = migrateSaveIds(raw);
+  const narrative = mergeNarrativeDefaults(raw);
 
   return {
     username: asString(raw.username),
@@ -94,6 +101,10 @@ export function sanitizeSave(raw) {
     unlockedMails: migrated.unlockedMails,
     readMails: migrated.readMails,
     narrativeFlags: migrated.narrativeFlags,
+    choices: narrative.choices,
+    factionAlignment: narrative.factionAlignment,
+    trustUltraTech: narrative.trustUltraTech,
+    trustNova: narrative.trustNova,
     discoveredNodes: asArray(raw.discoveredNodes),
     discoveredClues: asArray(raw.discoveredClues),
     missionSteps: asObject(raw.missionSteps),

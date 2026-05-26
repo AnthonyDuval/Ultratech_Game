@@ -1,11 +1,16 @@
 import { useState, useEffect, useCallback, useRef, memo } from 'react';
-import { getUnlockedMails, getMailsUnlockedByReading } from '../data/mails.js';
+import { getUnlockedMails, getMailsUnlockedByReading, getMailBody } from '../data/mails.js';
+import { isMission1Phase } from '../game/guidanceLevel.js';
+import { getChoiceEventForMail, isChoiceResolved } from '../data/narrativeChoices.js';
+import { applyNarrativeChoice } from '../game/choiceEngine.js';
 import { onMailRead } from '../game/missionEngine.js';
+import ChoiceModal from '../components/ChoiceModal.jsx';
 
 const READ_DELAY_MS = { min: 800, max: 1200 };
 
 const MailBriefActions = memo(function MailBriefActions({
   meta,
+  showCommandActions,
   onOpenApp,
   onInsertCommand,
 }) {
@@ -44,7 +49,7 @@ const MailBriefActions = memo(function MailBriefActions({
         >
           {copiedTarget ? 'Cible copiée !' : 'Copier cible'}
         </button>
-        {meta.probableCommand && (
+        {showCommandActions && meta.probableCommand && (
           <button
             type="button"
             className="btn mail-brief-btn"
@@ -59,7 +64,7 @@ const MailBriefActions = memo(function MailBriefActions({
         <button type="button" className="btn btn-primary mail-brief-btn" onClick={() => onOpenApp('missions')}>
           Ouvrir Opérations
         </button>
-        {onInsertCommand && meta.probableCommand && (
+        {showCommandActions && onInsertCommand && meta.probableCommand && (
           <button
             type="button"
             className="btn mail-brief-btn mail-brief-btn--insert"
@@ -73,21 +78,34 @@ const MailBriefActions = memo(function MailBriefActions({
   );
 });
 
-const MailApp = memo(function MailApp({ state, dispatch, onSelectMail, onOpenApp, onInsertCommand }) {
+const MailApp = memo(function MailApp({ state, dispatch, onSelectMail, onOpenApp, onInsertCommand, onNotification }) {
   const { unlockedMails, readMails } = state;
-  const mails = getUnlockedMails(unlockedMails);
+  const mails = getUnlockedMails(unlockedMails, state);
   const [selectedId, setSelectedId] = useState(null);
+  const [choiceModal, setChoiceModal] = useState(null);
   const stateRef = useRef(state);
   const pendingReadRef = useRef(null);
 
   stateRef.current = state;
 
   const selected = mails.find((m) => m.id === selectedId) ?? mails[0] ?? null;
+  const selectedChoiceEvent = selected?.choiceEventId
+    ? getChoiceEventForMail(selected.id)
+    : null;
+  const choicePending = selectedChoiceEvent
+    && !isChoiceResolved(state, selectedChoiceEvent.id);
 
   const markMailAsRead = useCallback((mailId) => {
     const current = stateRef.current;
     if (!mailId || current.readMails.includes(mailId)) return;
     if (pendingReadRef.current === mailId) return;
+
+    const mail = mails.find((m) => m.id === mailId) ?? getUnlockedMails(current.unlockedMails, current).find((m) => m.id === mailId);
+    if (mail?.choiceEventId && !isChoiceResolved(current, mail.choiceEventId)) {
+      const event = getChoiceEventForMail(mailId);
+      if (event) setChoiceModal(event);
+      return;
+    }
 
     pendingReadRef.current = mailId;
 
@@ -104,7 +122,28 @@ const MailApp = memo(function MailApp({ state, dispatch, onSelectMail, onOpenApp
       unlockedMails: [...new Set([...current.unlockedMails, ...chained])],
     };
     onMailRead(mailId, nextState, dispatch);
-  }, [dispatch]);
+  }, [dispatch, mails]);
+
+  const handleChoiceSelect = useCallback((optionId) => {
+    if (!choiceModal) return;
+    const result = applyNarrativeChoice(
+      stateRef.current,
+      dispatch,
+      choiceModal.id,
+      optionId,
+      onNotification
+    );
+    if (result.ok && choiceModal.mailId) {
+      pendingReadRef.current = null;
+      dispatch({ type: 'MARK_MAIL_READ', mailId: choiceModal.mailId });
+      const current = stateRef.current;
+      onMailRead(choiceModal.mailId, {
+        ...current,
+        readMails: [...current.readMails, choiceModal.mailId],
+      }, dispatch);
+    }
+    setChoiceModal(null);
+  }, [choiceModal, dispatch, onNotification]);
 
   useEffect(() => {
     if (selected?.id) onSelectMail?.(selected.id);
@@ -184,12 +223,32 @@ const MailApp = memo(function MailApp({ state, dispatch, onSelectMail, onOpenApp
           {selected.briefMeta && (
             <MailBriefActions
               meta={selected.briefMeta}
+              showCommandActions={isMission1Phase(state)}
               onOpenApp={onOpenApp}
               onInsertCommand={onInsertCommand}
             />
           )}
-          <pre className="mail-view-body">{selected.body}</pre>
+          <pre className="mail-view-body">{getMailBody(selected, state)}</pre>
+          {choicePending && (
+            <div className="mail-choice-pending">
+              <p>Une décision est requise avant de clôturer ce message.</p>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => setChoiceModal(selectedChoiceEvent)}
+              >
+                Répondre
+              </button>
+            </div>
+          )}
         </article>
+      )}
+      {choiceModal && (
+        <ChoiceModal
+          event={choiceModal}
+          onSelect={handleChoiceSelect}
+          onClose={() => setChoiceModal(null)}
+        />
       )}
     </div>
   );

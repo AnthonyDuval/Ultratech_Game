@@ -309,6 +309,10 @@
   box-shadow: 0 0 20px rgba(217, 140, 255, 0.12);
 }
 
+.desktop-toast--choice-made {
+  border-left: 4px solid var(--red);
+}
+
 .desktop-toast-title {
   display: block;
   font-family: var(--font-mono);

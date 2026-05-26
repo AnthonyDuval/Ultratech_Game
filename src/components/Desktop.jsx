@@ -94,10 +94,10 @@ export default function Desktop({ state, dispatch }) {
   }, [state.tutorialCompleted, state.narrativeFlags, state, dispatch]);
 
   const unreadCount = useMemo(
-    () => getUnlockedMails(state.unlockedMails).filter(
+    () => getUnlockedMails(state.unlockedMails, state).filter(
       (m) => !state.readMails.includes(m.id)
     ).length,
-    [state.unlockedMails, state.readMails]
+    [state.unlockedMails, state.readMails, state.choices, state.narrativeFlags]
   );
 
   const activeOps = useMemo(
@@ -157,6 +157,7 @@ export default function Desktop({ state, dispatch }) {
             onSelectMail={handleSelectMail}
             onOpenApp={openApp}
             onInsertCommand={handleInsertCommand}
+            onNotification={handleNotification}
           />
         );
       case 'missions':

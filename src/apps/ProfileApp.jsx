@@ -81,6 +81,18 @@ export default function ProfileApp({ state }) {
             {state.suspicionUltraTech ?? 0}%
           </span>
         </div>
+        <div className="profile-stat">
+          <label>Confiance UltraTech</label>
+          <span>{state.trustUltraTech ?? 50}%</span>
+        </div>
+        <div className="profile-stat">
+          <label>Confiance NOVA</label>
+          <span>{state.trustNova ?? 30}%</span>
+        </div>
+        <div className="profile-stat">
+          <label>Alignement</label>
+          <span className="profile-alignment">{state.factionAlignment ?? 'neutral'}</span>
+        </div>
       </div>
 
       <div className="profile-missions">

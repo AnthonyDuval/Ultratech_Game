@@ -1,8 +1,9 @@
 /**
  * Aide active unique — source de vérité pour GuidanceHint et notifications
+ * Mission 1 : aide explicite. Mission 2+ : indices RP et navigation mails uniquement.
  */
 
-import { getMissionById, getSuggestedCommand, getCurrentStep, getNextStepText, getPrimaryActiveMission } from '../data/missions.js';
+import { getMissionById, getSuggestedCommand, getPrimaryActiveMission } from '../data/missions.js';
 import { isMailUnlocked } from '../data/mails.js';
 import {
   isGhostSignalDone,
@@ -13,8 +14,8 @@ import {
 import {
   computeGuidanceLevel,
   getGuidanceTitle,
-  shouldRevealCommandInHelp,
   shouldShowGuidanceHint,
+  isMission1Phase,
 } from './guidanceLevel.js';
 import { buildNovaStuckHelp } from './novaHints.js';
 
@@ -30,6 +31,13 @@ const APP_LABELS = {
   missions: 'Opérations',
   terminal: 'Terminal',
 };
+
+const M1_COMMAND_IDS = new Set([
+  'anon-scan-direct',
+  'm1-scan',
+  'm1-connect',
+  'm1-anon-direct',
+]);
 
 /** Retourne l'aide principale active (guidance ou objectif compact si aide masquée) */
 export function getActiveHelp(state, ui = {}) {
@@ -57,14 +65,29 @@ export function getActiveHelp(state, ui = {}) {
 
 function finalizeHelp(help, level, state) {
   if (!help) return null;
-  const source = help.source ?? 'system';
+
+  const m1 = isMission1Phase(state);
+  let sanitized = { ...help };
+
+  if (!m1 && !M1_COMMAND_IDS.has(sanitized.id)) {
+    sanitized.revealCommand = false;
+    sanitized.command = undefined;
+  }
+
+  if (state.narrativeFlags?.stuck_hint_active && !m1) {
+    sanitized.revealCommand = false;
+    sanitized.command = undefined;
+  }
+
+  const source = sanitized.source ?? 'system';
   return {
-    ...help,
+    ...sanitized,
     type: 'guidance',
     priority: HELP_PRIORITY.GUIDANCE,
     title: getGuidanceTitle(level, source),
     guidanceLevel: level,
-    tone: source === 'nova' ? 'nova' : level >= 2 ? 'cryptic' : 'direct',
+    tone: source === 'nova' ? 'nova' : m1 ? 'direct' : 'cryptic',
+    autoDismiss: !m1 && !state.narrativeFlags?.stuck_hint_active,
   };
 }
 
@@ -88,19 +111,22 @@ function buildObjectiveFallback(state, ui, level) {
   const guidance = buildGuidanceHelp(state, ui, level);
   if (!guidance) return null;
 
+  const finalized = finalizeHelp(guidance, level, state);
+  if (!finalized) return null;
+
   return {
-    id: `compact-${guidance.id}`,
-    message: guidance.message,
-    targetApp: guidance.targetApp,
-    actionLabel: guidance.actionLabel,
-    command: guidance.command,
-    revealCommand: guidance.revealCommand,
-    target: guidance.target,
-    protocol: guidance.protocol,
+    id: `compact-${finalized.id}`,
+    message: finalized.message,
+    targetApp: finalized.targetApp,
+    actionLabel: finalized.actionLabel,
+    command: finalized.command,
+    revealCommand: finalized.revealCommand,
+    target: finalized.target,
+    protocol: finalized.protocol,
     type: 'objective',
     priority: HELP_PRIORITY.OBJECTIVE,
-    title: getGuidanceTitle(level, guidance.source),
-    tone: guidance.source === 'nova' ? 'nova' : 'compact',
+    title: finalized.title,
+    tone: finalized.tone,
   };
 }
 
@@ -140,8 +166,9 @@ function buildGuidanceHelp(state, ui, level) {
   }
 
   if (isGhostSignalDone(completed)) {
-    const afterGhost = helpAfterGhostSignal(state, has, selectedMailId, discovered, completed, flags, level);
+    const afterGhost = helpAfterGhostSignal(state, has, selectedMailId, discovered, completed);
     if (afterGhost) return afterGhost;
+    return null;
   }
 
   if (discovered.includes('ghost-signal')) {
@@ -192,72 +219,49 @@ function helpPostBrief(state, has, openApps, flags, level) {
   return helpMission1(state, flags, has, openApps, level);
 }
 
-function helpAfterGhostSignal(state, has, selectedMailId, discovered, completed, flags, level) {
+/** Après mission 1 — navigation mails uniquement, pas d'aide opérationnelle */
+function helpAfterGhostSignal(state, has, selectedMailId, discovered, completed) {
   const read = state.readMails ?? [];
+  const unlocked = state.unlockedMails ?? [];
 
-  if (!read.includes('mail-relay-hint')) {
+  const mailPointers = [
+    { id: 'mail-relay-hint', select: 'Lisez le fragment sur le relais Black-07.', read: 'Le fragment parle d\'un relais retiré des registres.' },
+    { id: 'mail-relay-dilemma', select: 'Une décision UltraTech attend dans Mails.', read: 'Répondez avant de poursuivre.' },
+    { id: 'mail-archive-leak', select: 'Un nouveau fragment est disponible.', read: 'Un fichier classifié circule dans vos messages.' },
+    { id: 'mail-ultratech-alert', select: 'Consultez vos nouveaux messages.', read: 'UltraTech a laissé une trace dans la messagerie.' },
+    { id: 'mail-nova-whisper', select: 'Un message NOVA pulse dans Mails.', read: 'NOVA tente de vous joindre.' },
+  ];
+
+  for (const ptr of mailPointers) {
+    if (!unlocked.includes(ptr.id) || read.includes(ptr.id)) continue;
     if (!has('mail')) {
-      return h('relay-open', level >= 2 ? 'Quelque chose pulse dans la messagerie.' : 'Consultez vos nouveaux messages.', 'mail', { suppressUnreadNotif: true });
+      return h(`nav-${ptr.id}`, 'Consultez vos nouveaux messages.', 'mail', { suppressUnreadNotif: true });
     }
-    if (selectedMailId !== 'mail-relay-hint') {
-      return hPlain('relay-select', 'Lisez le fragment Black-07 dans Mails.', { suppressUnreadNotif: true });
+    if (selectedMailId !== ptr.id) {
+      return hPlain(`nav-select-${ptr.id}`, ptr.select, { suppressUnreadNotif: true });
     }
-    return hPlain('relay-read', level >= 2 ? 'Le relais écoute encore.' : 'Lisez le fragment — cible black-07.', { suppressUnreadNotif: true });
+    return hPlain(`nav-read-${ptr.id}`, ptr.read, { suppressUnreadNotif: true });
   }
 
   if (isBlackRelayDone(completed)) {
-    return helpFreeMissions(state, has, selectedMailId, discovered, completed, flags, level);
+    return helpFreeMailOnly(state, has, unlocked, read);
   }
 
   if (discovered.includes('black-relay')) {
-    return helpMission2(flags, has, completed, level, state);
+    return null;
   }
 
-  return hPlain('post-ghost', 'Consultez vos nouveaux messages.');
+  return null;
 }
 
-function helpFreeMissions(state, has, selectedMailId, discovered, completed, flags, level) {
-  const active = getPrimaryActiveMission(discovered, completed);
-  if (!active) return null;
-
-  if (active.id === 'dead-archive') {
-    if (!state.readMails?.includes('mail-archive-leak')) {
-      if (!has('mail')) return h('m3-mail', 'Un fichier corrompu circule encore.', 'mail', { suppressUnreadNotif: true });
-      return hPlain('m3-read', 'Lisez le fragment sur archive_2077.');
-    }
-    const step = getCurrentStep(active, flags);
-    if (step && !flags.decrypt_archive2077) {
-      return {
-        id: 'm3-decrypt',
-        message: step.rpHint ?? 'Le protocole interne murmure dans les logs morts.',
-        target: step.target ?? 'archive_2077',
-        protocol: step.protocol ?? 'DECRYPT',
-        targetApp: has('terminal') ? undefined : 'terminal',
-        actionLabel: has('terminal') ? undefined : APP_LABELS.terminal,
-        revealCommand: shouldRevealCommandInHelp(state, 'free'),
-        command: shouldRevealCommandInHelp(state, 'free') ? 'decrypt archive_2077' : undefined,
-      };
-    }
+function helpFreeMailOnly(state, has, unlocked, read) {
+  if (unlocked.includes('mail-archive-leak') && !read.includes('mail-archive-leak') && !has('mail')) {
+    return h('free-mail', 'Un nouveau fragment est disponible.', 'mail', { suppressUnreadNotif: true });
   }
-
-  if (active.id === 'surveillance') {
-    if (!state.readMails?.includes('mail-ultratech-alert')) {
-      if (!has('mail')) return h('m4-mail', 'UltraTech vous cherche.', 'mail', { suppressUnreadNotif: true });
-      return hPlain('m4-read', 'Lisez l\'alerte sécurité.');
-    }
-    if (!flags.trace_cleared) {
-      return {
-        id: 'm4-trace',
-        message: level >= 2 ? 'Efface avant qu\'ils ne te voient.' : 'La surveillance monte. Atténuez votre empreinte.',
-        protocol: 'TRACE',
-        targetApp: has('terminal') ? undefined : 'terminal',
-        actionLabel: APP_LABELS.terminal,
-      };
-    }
+  if (unlocked.includes('mail-ultratech-alert') && !read.includes('mail-ultratech-alert') && !has('mail')) {
+    return h('free-alert', 'Consultez vos nouveaux messages.', 'mail', { suppressUnreadNotif: true });
   }
-
-  if (level >= 3) return null;
-  return hPlain('free-idle', 'Croisez mails, indices et terminal.');
+  return null;
 }
 
 function helpMission1(state, flags, has, openApps, level) {
@@ -317,57 +321,11 @@ function helpMission1(state, flags, has, openApps, level) {
     const cmd = getSuggestedCommand(mission, flags) ?? 'connect 0x7f';
     return {
       id: 'm1-connect',
-      message: 'Analyse terminée. Essayez maintenant connect 0x7f.',
+      message: 'Analyse terminée. Établissez la connexion vers 0x7f.',
       target: '0x7f',
       protocol: 'CONNECT',
       revealCommand: true,
       command: cmd,
-      targetApp: has('terminal') ? undefined : 'terminal',
-      actionLabel: has('terminal') ? undefined : APP_LABELS.terminal,
-    };
-  }
-
-  return null;
-}
-
-function helpMission2(flags, has, completed, level, state) {
-  if (isBlackRelayDone(completed)) return null;
-  const mission = getMissionById('black-relay');
-  const reveal = shouldRevealCommandInHelp(state, 'semi');
-
-  if (!flags.scan_black07) {
-    if (!has('missions') && !has('terminal')) {
-      return {
-        id: 'm2-post-mail',
-        message: level >= 1 ? 'Le relais semble répondre au protocole SCAN.' : 'Cible black-07 repérée. Consultez Opérations.',
-        target: 'black-07',
-        protocol: 'SCAN',
-        targetApp: 'missions',
-        actionLabel: APP_LABELS.missions,
-        suppressOpsNotif: true,
-      };
-    }
-    return {
-      id: 'm2-scan',
-      message: level >= 1 ? 'Le relais semble répondre au protocole SCAN.' : 'Scannez le relais black-07.',
-      target: 'black-07',
-      protocol: 'SCAN',
-      revealCommand: reveal,
-      command: reveal ? 'scan black-07' : undefined,
-      targetApp: has('terminal') ? undefined : 'terminal',
-      actionLabel: has('terminal') ? undefined : APP_LABELS.terminal,
-    };
-  }
-
-  if (!flags.connect_black07) {
-    const cmd = getSuggestedCommand(mission, flags) ?? 'connect black-07';
-    return {
-      id: 'm2-connect',
-      message: level >= 1 ? 'Certaines connexions ne doivent pas être tracées.' : 'Relais localisé. Établissez la connexion.',
-      target: 'black-07',
-      protocol: 'CONNECT',
-      revealCommand: reveal,
-      command: reveal ? cmd : undefined,
       targetApp: has('terminal') ? undefined : 'terminal',
       actionLabel: has('terminal') ? undefined : APP_LABELS.terminal,
     };
@@ -408,5 +366,3 @@ export function getObjectiveWidgetData(state, ui = {}) {
     protocol: help.protocol,
   };
 }
-
-export { getCurrentStep, getNextStepText };

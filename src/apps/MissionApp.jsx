@@ -21,6 +21,10 @@ import {
 import {
   computeGuidanceLevel,
   shouldShowMissionCommand,
+  getProtocolLabel,
+  getHintLabel,
+  getMissionRiskLabel,
+  isMission1Phase,
 } from '../game/guidanceLevel.js';
 
 const MissionCard = memo(function MissionCard({
@@ -31,6 +35,8 @@ const MissionCard = memo(function MissionCard({
   unlockedMails,
   openApps,
   guidanceLevel,
+  isM1,
+  suspicionUltraTech,
 }) {
   const progress = getMissionProgress(mission, narrativeFlags);
   const step = getCurrentStep(mission, narrativeFlags);
@@ -58,10 +64,17 @@ const MissionCard = memo(function MissionCard({
     ? shouldRevealScanCommand(stateSlice, openApps)
     : shouldShowMissionCommand(stateSlice, mission);
 
+  const showNextStep = mission.guidanceLevel === 'tutorial' && nextStep;
+  const protocolLabel = getProtocolLabel(mission, guidanceLevel);
+  const hintLabel = getHintLabel(mission);
+
   const displayObjective = isM1ScanPending ? 'Analyser la cible 0x7f' : currentObjective;
-  const displayHint = isM1ScanPending && !hasAnonScanHelp(stateSlice)
-    ? 'Un contact anonyme pourrait vous aider si vous hésitez.'
-    : (guidanceLevel >= 2 && step?.rpHint) ? step.rpHint : step?.hint;
+
+  const displayHint = isM1
+    ? (isM1ScanPending && !hasAnonScanHelp(stateSlice)
+      ? 'Un contact anonyme pourrait vous aider si vous hésitez.'
+      : step?.hint)
+    : (step?.rpHint ?? step?.hint);
 
   const showJournal = guided || isFree;
 
@@ -84,7 +97,7 @@ const MissionCard = memo(function MissionCard({
 
       {showJournal ? (
         <div className="ops-journal">
-          {nextStep && guided && (
+          {showNextStep && (
             <div className="ops-journal-block">
               <span className="ops-journal-label">Étape suivante</span>
               <p className="ops-journal-value">{isM1ScanPending ? 'Ouvrir le Terminal' : nextStep}</p>
@@ -102,14 +115,20 @@ const MissionCard = memo(function MissionCard({
           )}
           {protocol && (
             <div className="ops-journal-block ops-journal-block--protocol">
-              <span className="ops-journal-label">Protocole suggéré</span>
+              <span className="ops-journal-label">{protocolLabel}</span>
               <p className="ops-journal-value ops-journal-mono">{protocol}</p>
             </div>
           )}
           {displayHint && (
             <div className="ops-journal-block ops-journal-block--hint">
-              <span className="ops-journal-label">{isFree ? 'Fragment' : 'Indice'}</span>
+              <span className="ops-journal-label">{hintLabel}</span>
               <p className="ops-journal-value">{displayHint}</p>
+            </div>
+          )}
+          {isFree && (
+            <div className="ops-journal-block ops-journal-block--risk">
+              <span className="ops-journal-label">Niveau de risque</span>
+              <p className="ops-journal-value">{getMissionRiskLabel({ suspicionUltraTech })}</p>
             </div>
           )}
           {showCommand && suggested && (
@@ -124,9 +143,9 @@ const MissionCard = memo(function MissionCard({
           <p className="ops-current-objective">
             <strong>Objectif : </strong>{currentObjective}
           </p>
-          {step?.hint && (
+          {displayHint && (
             <p className="ops-hint">
-              <strong>Indice : </strong>{step.hint}
+              <strong>{hintLabel} : </strong>{displayHint}
             </p>
           )}
         </>
@@ -144,9 +163,11 @@ export default function MissionApp({ state, openApps = [] }) {
     discoveredNodes,
     readMails,
     unlockedMails,
+    suspicionUltraTech,
   } = state;
 
   const guidanceLevel = useMemo(() => computeGuidanceLevel(state), [state]);
+  const isM1 = useMemo(() => isMission1Phase(state), [state]);
 
   const active = useMemo(
     () => getActiveDiscoveredMissions(discoveredMissions, completedMissions),
@@ -191,6 +212,8 @@ export default function MissionApp({ state, openApps = [] }) {
               unlockedMails={unlockedMails}
               openApps={openApps}
               guidanceLevel={guidanceLevel}
+              isM1={isM1}
+              suspicionUltraTech={suspicionUltraTech ?? 0}
             />
           ))
         )}

@@ -1,5 +1,6 @@
 import { useReducer, useEffect } from 'react';
 import { loadGame } from '../utils/saveSystem.js';
+import { mergeNarrativeDefaults, computeFactionAlignment } from '../game/narrativeState.js';
 
 export const PHASES = {
   BOOT: 'boot',
@@ -9,6 +10,7 @@ export const PHASES = {
 
 /** État initial — champs compatibles avec anciennes sauvegardes */
 export function createInitialState() {
+  const narrative = mergeNarrativeDefaults();
   return {
     phase: PHASES.BOOT,
     username: '',
@@ -21,11 +23,12 @@ export function createInitialState() {
     unlockedMails: [],
     readMails: [],
     narrativeFlags: {},
-    /** Nœuds repérés via scan/connect/decrypt */
+    choices: narrative.choices,
+    factionAlignment: narrative.factionAlignment,
+    trustUltraTech: narrative.trustUltraTech,
+    trustNova: narrative.trustNova,
     discoveredNodes: [],
-    /** Indices textuels issus des mails lus */
     discoveredClues: [],
-    /** Étapes complétées par mission : { 'ghost-signal': ['scan_0x7f', ...] } */
     missionSteps: {},
     terminalLogs: [],
     tutorialCompleted: false,
@@ -129,6 +132,35 @@ function gameReducer(state, action) {
     case 'DISABLE_GUIDANCE':
       return { ...state, guidanceDisabled: true };
 
+    case 'APPLY_NARRATIVE_CHOICE': {
+      const { option } = action;
+      const effects = option.effects ?? {};
+      const newChoices = { ...state.choices, [option.choiceKey]: option.choiceValue };
+      const newFlags = {
+        ...state.narrativeFlags,
+        ...(option.flags ?? {}),
+        [`choice_${option.choiceKey}`]: option.choiceValue,
+        blocked_mails: [
+          ...new Set([...(state.narrativeFlags?.blocked_mails ?? []), ...(option.blockMails ?? [])]),
+        ],
+      };
+      const trustUltraTech = clampStat((state.trustUltraTech ?? 50) + (effects.trustUltraTech ?? 0));
+      const trustNova = clampStat((state.trustNova ?? 30) + (effects.trustNova ?? 0));
+
+      return {
+        ...state,
+        choices: newChoices,
+        narrativeFlags: newFlags,
+        trustUltraTech,
+        trustNova,
+        factionAlignment: computeFactionAlignment(trustUltraTech, trustNova),
+        reputation: state.reputation + (effects.reputation ?? 0),
+        corruption: clampStat(state.corruption + (effects.corruption ?? 0)),
+        suspicionUltraTech: clampStat(state.suspicionUltraTech + (effects.suspicionUltraTech ?? 0)),
+        unlockedMails: [...new Set([...state.unlockedMails, ...(option.unlockMails ?? [])])],
+      };
+    }
+
     case 'RESET_PROFILE':
       return { ...createInitialState(), phase: PHASES.BOOT };
 
@@ -139,9 +171,11 @@ function gameReducer(state, action) {
 
 function mergeSavedState(saved) {
   const base = createInitialState();
+  const narrative = mergeNarrativeDefaults(saved);
   return {
     ...base,
     ...saved,
+    ...narrative,
     discoveredMissions: saved.discoveredMissions ?? [],
     narrativeFlags: saved.narrativeFlags ?? {},
     discoveredNodes: saved.discoveredNodes ?? [],

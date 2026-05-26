@@ -19,6 +19,10 @@ function serializeDeps(state) {
     JSON.stringify(state.discoveredClues),
     JSON.stringify(state.missionSteps),
     JSON.stringify(state.terminalLogs),
+    JSON.stringify(state.choices),
+    state.factionAlignment,
+    state.trustUltraTech,
+    state.trustNova,
   ];
 }
 

@@ -27,7 +27,7 @@ export const TUTORIAL_STEPS = [
   {
     id: 'follow',
     title: 'Étape 4 — Suivre les indices',
-    body: 'Croisez les informations entre mails, Opérations et terminal. Une petite aide contextuelle vous guidera au début — vous pourrez la masquer à tout moment.',
+    body: 'Croisez mails, Opérations et terminal pour déduire les protocoles. L\'aide explicite ne couvre que la première mission — ensuite, seuls les fragments RP vous guideront. Vous pourrez masquer l\'aide à tout moment.',
   },
   {
     id: 'stats',
