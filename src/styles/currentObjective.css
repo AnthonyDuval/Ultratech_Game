@@ -121,6 +121,36 @@
   }
 }
 
+.objective-widget--compact {
+  width: min(280px, calc(100vw - 24px));
+  padding: var(--space-sm) var(--space-md);
+}
+
+.objective-widget--compact .objective-widget-action {
+  font-size: var(--text-base);
+  margin-bottom: var(--space-xs);
+}
+
+.objective-widget-cmd--inline {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: var(--text-base);
+  color: var(--yellow);
+  margin-bottom: var(--space-xs);
+}
+
+.objective-widget--compact .objective-widget-actions {
+  margin-top: var(--space-xs);
+}
+
+.objective-widget--compact .objective-widget-btn-copy,
+.objective-widget--compact .objective-widget-btn-insert,
+.objective-widget--compact .objective-widget-btn-open {
+  min-height: 40px;
+  padding: 8px 14px;
+  font-size: var(--text-base);
+}
+
 @media (max-width: 1100px) {
   .objective-widget {
     display: none;

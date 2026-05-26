@@ -15,6 +15,7 @@ import ProfileApp from '../apps/ProfileApp.jsx';
 import { useAutoSave } from '../hooks/useAutoSave.js';
 import { useAnonScanHelp } from '../hooks/useAnonScanHelp.js';
 import { getUnlockedMails } from '../data/mails.js';
+import { getActiveHelp, shouldSuppressDesktopNotifs } from '../game/activeHelp.js';
 
 const APPS = [
   { id: 'terminal', label: 'Terminal', iconType: 'terminal', accent: 'cyan', title: 'Terminal — ULTRATECH OS', width: 920, height: 620 },
@@ -90,6 +91,30 @@ export default function Desktop({ state, dispatch }) {
 
   const openApps = useMemo(() => windows.map((w) => w.id), [windows]);
 
+  const activeHelp = useMemo(
+    () => {
+      if (!state.tutorialCompleted || betaNoticeOpen) return null;
+      return getActiveHelp(state, { openApps, selectedMailId });
+    },
+    [
+      state.tutorialCompleted,
+      state.guidanceDisabled,
+      state.readMails,
+      state.unlockedMails,
+      state.discoveredMissions,
+      state.completedMissions,
+      state.narrativeFlags,
+      openApps,
+      selectedMailId,
+      betaNoticeOpen,
+    ]
+  );
+
+  const notifSuppress = useMemo(
+    () => shouldSuppressDesktopNotifs(activeHelp),
+    [activeHelp]
+  );
+
   const terminalInsertCmd = useMemo(
     () => terminalInsert?.split('::')[0] ?? null,
     [terminalInsert]
@@ -140,11 +165,10 @@ export default function Desktop({ state, dispatch }) {
         suspicion={state.suspicionUltraTech ?? 0}
       />
 
-      {state.tutorialCompleted && (
+      {activeHelp?.type === 'objective' && (
         <CurrentObjectiveWidget
-          state={state}
+          help={activeHelp}
           openApps={openApps}
-          selectedMailId={selectedMailId}
           onOpenApp={openApp}
           onInsertCommand={handleInsertCommand}
         />
@@ -180,12 +204,12 @@ export default function Desktop({ state, dispatch }) {
         ))}
       </div>
 
-      {unreadCount > 0 && (
-        <div className="desktop-notif">{unreadCount} message(s) non lu(s)</div>
+      {unreadCount > 0 && !notifSuppress.unread && (
+        <div className="desktop-notif desktop-notif--subtle">{unreadCount} message(s) non lu(s)</div>
       )}
 
-      {activeOps > 0 && (
-        <div className="desktop-notif desktop-notif--ops">
+      {activeOps > 0 && !notifSuppress.ops && (
+        <div className="desktop-notif desktop-notif--ops desktop-notif--subtle">
           {activeOps} opération(s) active(s)
         </div>
       )}
@@ -200,12 +224,11 @@ export default function Desktop({ state, dispatch }) {
         <TutorialOverlay dispatch={dispatch} />
       )}
 
-      {state.tutorialCompleted && !state.guidanceDisabled && (
+      {activeHelp?.type === 'guidance' && (
         <GuidanceHint
-          state={state}
+          help={activeHelp}
           dispatch={dispatch}
           openApps={openApps}
-          selectedMailId={selectedMailId}
           onOpenApp={openApp}
           onInsertCommand={handleInsertCommand}
         />

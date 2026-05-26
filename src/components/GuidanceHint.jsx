@@ -1,29 +1,12 @@
-import { useMemo, useCallback, useState, memo } from 'react';
-import { getCurrentGuidance } from '../game/guidance.js';
+import { useCallback, useState, memo } from 'react';
 
 const GuidanceHint = memo(function GuidanceHint({
-  state,
+  help,
   dispatch,
   openApps,
-  selectedMailId,
   onOpenApp,
   onInsertCommand,
 }) {
-  const hint = useMemo(
-    () => getCurrentGuidance(state, { openApps, selectedMailId }),
-    [
-      state.guidanceDisabled,
-      state.tutorialCompleted,
-      state.readMails,
-      state.unlockedMails,
-      state.discoveredMissions,
-      state.completedMissions,
-      state.narrativeFlags,
-      openApps,
-      selectedMailId,
-    ]
-  );
-
   const [copied, setCopied] = useState(false);
 
   const handleDismiss = useCallback(() => {
@@ -35,52 +18,53 @@ const GuidanceHint = memo(function GuidanceHint({
   }, [onOpenApp]);
 
   const handleCopy = useCallback(async () => {
-    if (!hint?.command) return;
+    if (!help?.command) return;
     try {
-      await navigator.clipboard.writeText(hint.command);
+      await navigator.clipboard.writeText(help.command);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
       setCopied(false);
     }
-  }, [hint?.command]);
+  }, [help?.command]);
 
   const handleInsert = useCallback(() => {
-    if (!hint?.command || !onInsertCommand) return;
-    onInsertCommand(hint.command);
-  }, [hint?.command, onInsertCommand]);
+    if (!help?.command || !onInsertCommand) return;
+    onInsertCommand(help.command);
+  }, [help?.command, onInsertCommand]);
 
-  if (!hint) return null;
+  if (!help) return null;
 
   const terminalOpen = openApps.includes('terminal');
-  const showOpen = hint.action && !openApps.includes(hint.action);
+  const targetApp = help.targetApp;
+  const showOpen = targetApp && !openApps.includes(targetApp);
 
   return (
     <aside className="guidance-hint" role="status" aria-live="polite">
       <div className="guidance-hint-inner">
-        <span className="guidance-badge">{hint.label ?? 'AIDE'}</span>
-        <p className="guidance-text">{hint.text}</p>
+        <span className="guidance-badge">{help.title ?? 'PROCHAINE ACTION'}</span>
+        <p className="guidance-text">{help.message}</p>
 
-        {(hint.target || hint.protocol) && (
+        {(help.target || help.protocol) && (
           <div className="guidance-rp-tags">
-            {hint.target && (
+            {help.target && (
               <span className="guidance-rp-tag">
-                Cible <strong>{hint.target}</strong>
+                Cible <strong>{help.target}</strong>
               </span>
             )}
-            {hint.protocol && (
+            {help.protocol && (
               <span className="guidance-rp-tag guidance-rp-tag--protocol">
-                Protocole <strong>{hint.protocol}</strong>
+                Protocole <strong>{help.protocol}</strong>
               </span>
             )}
           </div>
         )}
 
-        {hint.revealCommand && hint.command && (
+        {help.revealCommand && help.command && (
           <div className="guidance-command-block">
             <span className="guidance-command-label">Commande probable</span>
             <div className="guidance-command-row">
-              <code className="guidance-command">{hint.command}</code>
+              <code className="guidance-command">{help.command}</code>
               <button
                 type="button"
                 className="btn guidance-btn-copy"
@@ -88,7 +72,7 @@ const GuidanceHint = memo(function GuidanceHint({
               >
                 {copied ? 'Copié !' : 'Copier'}
               </button>
-              {terminalOpen && (
+              {terminalOpen ? (
                 <button
                   type="button"
                   className="btn btn-primary guidance-btn-insert"
@@ -96,29 +80,39 @@ const GuidanceHint = memo(function GuidanceHint({
                 >
                   Insérer
                 </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-primary guidance-btn-open"
+                  onClick={() => handleOpen('terminal')}
+                >
+                  Ouvrir Terminal
+                </button>
               )}
             </div>
           </div>
         )}
 
         <div className="guidance-actions">
-          {hint.secondaryActions?.map(({ app, label }) => (
-            <button
-              key={app}
-              type="button"
-              className="btn btn-primary guidance-btn-open"
-              onClick={() => handleOpen(app)}
-            >
-              Ouvrir {label}
-            </button>
-          ))}
+          {help.secondaryActions
+            ?.filter(({ app }) => !openApps.includes(app))
+            .map(({ app, label }) => (
+              <button
+                key={app}
+                type="button"
+                className="btn btn-primary guidance-btn-open"
+                onClick={() => handleOpen(app)}
+              >
+                Ouvrir {label}
+              </button>
+            ))}
           {showOpen && (
             <button
               type="button"
               className="btn btn-primary guidance-btn-open"
-              onClick={() => handleOpen(hint.action)}
+              onClick={() => handleOpen(targetApp)}
             >
-              Ouvrir {hint.actionLabel}
+              Ouvrir {help.actionLabel}
             </button>
           )}
           <button type="button" className="btn guidance-btn-dismiss" onClick={handleDismiss}>
