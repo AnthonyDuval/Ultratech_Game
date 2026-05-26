@@ -1,0 +1,128 @@
+.objective-widget {
+  position: fixed;
+  top: calc(var(--topbar-height) + var(--space-md));
+  right: var(--space-md);
+  z-index: 850;
+  width: min(340px, calc(100vw - 32px));
+  padding: var(--space-md) var(--space-lg);
+  background: rgba(10, 10, 18, 0.96);
+  border: 1px solid var(--cyan-dim);
+  border-radius: var(--window-radius);
+  box-shadow: var(--shadow-window);
+  pointer-events: auto;
+}
+
+.objective-widget-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: var(--space-sm);
+}
+
+.objective-widget-badge {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--cyan);
+}
+
+.objective-widget-mission {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--text-bright);
+  line-height: var(--leading-tight);
+}
+
+.objective-widget-action {
+  font-size: var(--text-base);
+  line-height: var(--leading-relaxed);
+  color: var(--text);
+  margin-bottom: var(--space-sm);
+}
+
+.objective-widget-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-sm);
+}
+
+.objective-widget-tag {
+  font-size: var(--text-base);
+  color: var(--text);
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border);
+  border-radius: var(--window-radius);
+}
+
+.objective-widget-tag strong {
+  font-family: var(--font-mono);
+  color: var(--cyan);
+}
+
+.objective-widget-tag--protocol strong {
+  color: var(--yellow);
+}
+
+.objective-widget-cmd-block {
+  margin-bottom: var(--space-sm);
+}
+
+.objective-widget-cmd-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+
+.objective-widget-cmd {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--yellow);
+  padding: var(--space-sm);
+  background: rgba(255, 214, 51, 0.1);
+  border-radius: var(--window-radius);
+  border: 1px solid rgba(255, 214, 51, 0.25);
+}
+
+.objective-widget-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.objective-widget-btn-copy,
+.objective-widget-btn-insert,
+.objective-widget-btn-open {
+  font-size: var(--text-base);
+  min-height: 48px;
+  padding: 12px 18px;
+}
+
+.objective-widget-btn-copy {
+  color: var(--yellow);
+  border-color: rgba(255, 214, 51, 0.35);
+}
+
+@media (max-width: 1400px) {
+  .objective-widget {
+    width: min(300px, calc(100vw - 24px));
+    right: var(--space-sm);
+  }
+}
+
+@media (max-width: 1100px) {
+  .objective-widget {
+    display: none;
+  }
+}

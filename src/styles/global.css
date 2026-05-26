@@ -1,0 +1,206 @@
+@import './boot.css';
+@import './login.css';
+@import './desktop.css';
+@import './windows.css';
+@import './terminal.css';
+@import './mail.css';
+@import './missions.css';
+@import './profile.css';
+@import './tutorial.css';
+@import './guidance.css';
+@import './currentObjective.css';
+@import './beta.css';
+
+/* ── Design tokens UltraTech OS ── */
+:root {
+  /* Couleurs fond */
+  --bg-dark: #050508;
+  --bg-panel: #0e0e16;
+  --bg-input: #16161f;
+  --border: #2a2a3d;
+  --border-bright: #3d3d56;
+
+  /* Texte — contrastes renforcés pour stream / PC */
+  --text: #d0d8e4;
+  --text-dim: #9aa8bc;
+  --text-muted: #6e7a90;
+  --text-bright: #f2f5fa;
+
+  /* Accents */
+  --cyan: #00e5cc;
+  --cyan-dim: #00b8a3;
+  --green: #00ff88;
+  --yellow: #ffd633;
+  --red: #ff5577;
+  --magenta: #d98cff;
+
+  /* Typographie */
+  --font-mono: 'Consolas', 'Cascadia Mono', 'Courier New', monospace;
+  --font-display: 'Segoe UI', system-ui, sans-serif;
+
+  --text-xs: 16px;
+  --text-sm: 16px;
+  --text-base: 16px;
+  --text-md: 17px;
+  --text-lg: 18px;
+  --text-xl: 20px;
+  --text-2xl: 22px;
+
+  --leading-tight: 1.45;
+  --leading-normal: 1.6;
+  --leading-relaxed: 1.75;
+
+  /* Espacements */
+  --space-xs: 6px;
+  --space-sm: 10px;
+  --space-md: 16px;
+  --space-lg: 22px;
+  --space-xl: 28px;
+
+  /* Composants */
+  --topbar-height: 44px;
+  --window-radius: 6px;
+  --btn-radius: 6px;
+  --transition: 0.15s ease;
+
+  --shadow-window: 0 10px 40px rgba(0, 0, 0, 0.55);
+  --shadow-window-active: 0 14px 48px rgba(0, 229, 204, 0.1);
+  --shadow-glow-cyan: 0 0 24px rgba(0, 229, 204, 0.15);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--text);
+  background: var(--bg-dark);
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+input {
+  font-family: inherit;
+}
+
+/* ── Boutons ── */
+.btn {
+  padding: 12px 20px;
+  border-radius: var(--btn-radius);
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  color: var(--text-bright);
+  font-size: var(--text-base);
+  line-height: var(--leading-tight);
+  min-height: 48px;
+  transition: border-color var(--transition), color var(--transition), background var(--transition);
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--cyan-dim);
+  color: var(--cyan);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: rgba(0, 229, 204, 0.1);
+  border-color: var(--cyan-dim);
+  color: var(--cyan);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: rgba(0, 229, 204, 0.18);
+}
+
+.btn-danger {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: rgba(255, 85, 119, 0.12);
+}
+
+.btn-lg {
+  padding: 14px 24px;
+  font-size: var(--text-base);
+  min-height: 48px;
+}
+
+.badge {
+  font-size: var(--text-xs);
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.badge-done {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.pulse-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--cyan);
+  margin-right: 10px;
+  flex-shrink: 0;
+  animation: pulse 1.5s ease infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+/* Responsive — 1366x768 */
+@media (max-width: 1400px) {
+  html {
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 1100px) {
+  html {
+    font-size: 14px;
+  }
+}

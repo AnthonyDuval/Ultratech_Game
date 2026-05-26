@@ -1,0 +1,33 @@
+.boot-screen {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: #000;
+  font-family: var(--font-mono);
+  color: var(--green);
+}
+
+.boot-content {
+  width: min(640px, 90vw);
+  min-height: 220px;
+}
+
+.boot-line {
+  line-height: var(--leading-relaxed);
+  font-size: var(--text-base);
+}
+
+.boot-cursor {
+  display: inline;
+}
+
+.boot-brand {
+  position: absolute;
+  bottom: var(--space-lg);
+  font-size: var(--text-xs);
+  letter-spacing: 4px;
+  color: var(--text-dim);
+  opacity: 0.75;
+}

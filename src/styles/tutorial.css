@@ -1,0 +1,109 @@
+.tutorial-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl);
+}
+
+.tutorial-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(3px);
+}
+
+.tutorial-panel {
+  position: relative;
+  width: min(540px, 100%);
+  padding: var(--space-xl);
+  background: var(--bg-panel);
+  border: 1px solid var(--cyan-dim);
+  border-radius: var(--window-radius);
+  box-shadow: var(--shadow-window-active);
+  animation: tutorialIn 0.35s ease;
+}
+
+@keyframes tutorialIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.tutorial-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+}
+
+.tutorial-badge {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 2px;
+  color: var(--cyan);
+  padding: 4px 10px;
+  border: 1px solid var(--cyan-dim);
+  border-radius: 4px;
+}
+
+.tutorial-step {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+}
+
+.tutorial-title {
+  font-family: var(--font-mono);
+  font-size: var(--text-xl);
+  color: var(--text-bright);
+  margin-bottom: var(--space-md);
+  line-height: var(--leading-tight);
+}
+
+.tutorial-body {
+  font-size: var(--text-base);
+  line-height: var(--leading-relaxed);
+  color: var(--text);
+  margin-bottom: var(--space-xl);
+}
+
+.tutorial-progress {
+  display: flex;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-xl);
+}
+
+.tutorial-dot {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  transition: background var(--transition);
+}
+
+.tutorial-dot.active {
+  background: var(--cyan);
+  box-shadow: 0 0 8px rgba(0, 229, 204, 0.4);
+}
+
+.tutorial-dot.done {
+  background: var(--cyan-dim);
+}
+
+.tutorial-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.tutorial-actions-right {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.tutorial-btn-finish {
+  min-width: 120px;
+}
