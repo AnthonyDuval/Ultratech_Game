@@ -90,14 +90,17 @@ Ne tente aucune connexion avant le scan.
     subject: 'Relais Black-07 — fragment #2',
     body: `Runner,
 
-Le relais black-07 a été retiré des registres.
+Le relais black-07 a été retiré des registres corporate.
 Aucune connexion directe ne doit être tentée sans analyse préalable.
-Le protocole de surface répond encore.
+
+Le protocole de surface répond encore aux requêtes d'identification.
+Une fois la structure validée, le tunnel pourra s'ouvrir.
 
 Les métadonnées murmurent SCAN.
+Le réseau n'accepte CONNECT qu'après empreinte.
 
 — Anonyme`,
-    clue: 'Relais effacé — analyse préalable requise avant toute connexion.',
+    clue: 'Relais effacé — analyse surface requise avant tout tunnel.',
     date: '26/05/2087',
     time: '18:00',
     unlockedByDefault: false,
@@ -110,16 +113,15 @@ Les métadonnées murmurent SCAN.
   {
     id: 'mail-relay-dilemma',
     from: 'internal@ultratech.corp',
-    subject: 'black-07 — données classifiées',
+    subject: 'Données du relais black-07',
     body: `Opérateur,
 
-Le relais black-07 contient des données interdites.
+Des fragments interdits reposent sur votre terminal.
 UltraTech exige une décision immédiate.
 
-Les fragments ne peuvent pas rester sur votre terminal
-sans protocole de transmission.
+Que faites-vous des données du relais black-07 ?
 
-Répondez.
+Répondez via le protocole de transmission.
 
 — Division Conformité`,
     date: '26/05/2087',
@@ -251,6 +253,19 @@ export function getUnlockedMails(unlockedIds, state = null) {
 export function getMailBody(mail, state) {
   if (mail.id === 'mail-nova-whisper' && state) {
     return getNovaWhisperBody(state);
+  }
+  if (mail.id === 'mail-archive-leak' && state?.narrativeFlags?.dataPurged) {
+    return `Quelque chose a été effacé.
+
+Un nom revient quand même dans le bruit :
+archive_2077
+
+Pas de métadonnées complètes.
+Le protocole est fragmenté.
+
+Dépêche-toi.
+
+— contact`;
   }
   return mail.body;
 }

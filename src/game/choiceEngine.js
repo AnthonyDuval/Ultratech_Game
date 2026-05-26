@@ -22,9 +22,11 @@ export function applyNarrativeChoice(state, dispatch, eventId, optionId, onNotif
     option,
   });
 
-  if (option.terminalLog) {
-    dispatch({ type: 'ADD_TERMINAL_LOG', log: option.terminalLog });
-  }
+  const logs = option.terminalLogs
+    ?? (option.terminalLog ? [option.terminalLog] : []);
+  logs.forEach((log) => {
+    dispatch({ type: 'ADD_TERMINAL_LOG', log });
+  });
 
   const nextState = buildNextState(state, option);
   markProgress(nextState, dispatch);
@@ -32,7 +34,7 @@ export function applyNarrativeChoice(state, dispatch, eventId, optionId, onNotif
   onNotify?.({
     type: 'choice-made',
     title: 'Décision enregistrée',
-    message: 'Le réseau a pris note de votre action.',
+    message: option.notifyMessage ?? 'Le réseau a pris note de votre action.',
   });
 
   return { ok: true, option };

@@ -75,7 +75,9 @@ const MissionCard = memo(function MissionCard({
     ? (isM1ScanPending && !hasAnonScanHelp(stateSlice)
       ? 'Un contact anonyme pourrait vous aider si vous hésitez.'
       : step?.hint)
-    : (step?.rpHint ?? step?.hint);
+    : (narrativeFlags.archiveFragmentLost && step?.rpHintPurged
+      ? step.rpHintPurged
+      : (step?.rpHint ?? step?.hint));
 
   const suggested = showCommand ? getSuggestedCommand(mission, narrativeFlags) : null;
 

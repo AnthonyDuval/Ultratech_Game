@@ -94,6 +94,17 @@ function gameReducer(state, action) {
         narrativeFlags: { ...state.narrativeFlags, [action.flag]: action.value },
       };
 
+    case 'INCREMENT_NARRATIVE_FLAG': {
+      const current = state.narrativeFlags?.[action.flag] ?? 0;
+      return {
+        ...state,
+        narrativeFlags: {
+          ...state.narrativeFlags,
+          [action.flag]: current + (action.delta ?? 1),
+        },
+      };
+    }
+
     case 'ADD_DISCOVERED_NODE':
       return {
         ...state,

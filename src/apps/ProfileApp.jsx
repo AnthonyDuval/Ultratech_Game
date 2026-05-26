@@ -1,23 +1,38 @@
-import { useRef, useState } from 'react';
+import { memo, useMemo, useRef, useState } from 'react';
 import { MISSIONS } from '../data/missions.js';
 import { getReputationLabel } from '../utils/gameHelpers.js';
 import { resetSave } from '../utils/saveSystem.js';
 import { exportSaveToFile, importSaveFromFile } from '../utils/saveExport.js';
 import { GAME_VERSION } from '../config/version.js';
+import { getRelayChoiceLabel } from '../data/narrativeChoices.js';
 import BugReportModal from '../components/BugReportModal.jsx';
 
 const RESET_MSG = 'Cette action supprimera toute progression locale et rechargera le jeu depuis zéro.';
 
-export default function ProfileApp({ state }) {
+const ProfileApp = memo(function ProfileApp({ state }) {
   const rank = getReputationLabel(state.reputation);
+  const relayChoice = getRelayChoiceLabel(state.choices);
+  const profileNote = state.narrativeFlags?.profileNote;
   const fileInputRef = useRef(null);
   const [importError, setImportError] = useState(null);
   const [importSuccess, setImportSuccess] = useState(false);
   const [bugReportOpen, setBugReportOpen] = useState(false);
 
-  const knownMissions = MISSIONS.filter(
-    (m) => state.discoveredMissions?.includes(m.id) || state.completedMissions.includes(m.id)
+  const knownMissions = useMemo(
+    () => MISSIONS.filter(
+      (m) => state.discoveredMissions?.includes(m.id) || state.completedMissions.includes(m.id)
+    ),
+    [state.discoveredMissions, state.completedMissions]
   );
+
+  const alignmentLabel = useMemo(() => {
+    switch (state.factionAlignment) {
+      case 'ultratech': return 'Corporate';
+      case 'nova': return 'Underground';
+      case 'rogue': return 'Fantôme';
+      default: return 'Neutre';
+    }
+  }, [state.factionAlignment]);
 
   const handleReset = () => {
     if (window.confirm(`${RESET_MSG}\n\nConfirmer la réinitialisation ?`)) {
@@ -91,9 +106,24 @@ export default function ProfileApp({ state }) {
         </div>
         <div className="profile-stat">
           <label>Alignement</label>
-          <span className="profile-alignment">{state.factionAlignment ?? 'neutral'}</span>
+          <span className="profile-alignment">{alignmentLabel}</span>
         </div>
       </div>
+
+      {(relayChoice || profileNote) && (
+        <section className="profile-dossier">
+          <strong>Dossier narratif</strong>
+          {relayChoice && (
+            <p className="profile-dossier-choice">
+              <span className="profile-dossier-tag">black-07</span>
+              {relayChoice}
+            </p>
+          )}
+          {profileNote && (
+            <p className="profile-dossier-note">{profileNote}</p>
+          )}
+        </section>
+      )}
 
       <div className="profile-missions">
         <strong>Opérations connues</strong>
@@ -118,48 +148,36 @@ export default function ProfileApp({ state }) {
 
         <div className="profile-settings-actions">
           <button type="button" className="btn btn-primary" onClick={handleExport}>
-            Exporter sauvegarde
+            Exporter la sauvegarde
           </button>
           <button type="button" className="btn" onClick={handleImportClick}>
-            Importer sauvegarde
+            Importer une sauvegarde
+          </button>
+          <button type="button" className="btn profile-btn-danger" onClick={handleReset}>
+            Réinitialiser la progression
           </button>
           <button type="button" className="btn" onClick={() => setBugReportOpen(true)}>
-            Reporter un bug
+            Signaler un bug
           </button>
         </div>
+
+        {importError && <p className="profile-import-error">{importError}</p>}
+        {importSuccess && <p className="profile-import-success">Import réussi — rechargement…</p>}
 
         <input
           ref={fileInputRef}
           type="file"
           accept="application/json,.json"
-          className="profile-file-input"
+          hidden
           onChange={handleImportFile}
-          aria-hidden="true"
-          tabIndex={-1}
         />
-
-        {importError && (
-          <p className="profile-feedback profile-feedback--error" role="alert">
-            {importError}
-          </p>
-        )}
-        {importSuccess && (
-          <p className="profile-feedback profile-feedback--success" role="status">
-            Sauvegarde importée. Rechargement…
-          </p>
-        )}
       </section>
-
-      <div className="profile-actions">
-        <p className="profile-reset-hint">{RESET_MSG}</p>
-        <button type="button" className="btn btn-danger" onClick={handleReset}>
-          Réinitialiser la sauvegarde
-        </button>
-      </div>
 
       {bugReportOpen && (
         <BugReportModal state={state} onClose={() => setBugReportOpen(false)} />
       )}
     </div>
   );
-}
+});
+
+export default ProfileApp;

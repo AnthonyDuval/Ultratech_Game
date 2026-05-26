@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, memo } from 'react';
 import TopBar from './TopBar.jsx';
 import DesktopIcon from './DesktopIcon.jsx';
 import Window from './Window.jsx';
@@ -26,6 +26,47 @@ const APPS = [
   { id: 'profile', label: 'Profil', iconType: 'profile', accent: 'red', title: 'Profil opérateur', width: 560, height: 600 },
 ];
 
+const DesktopWindowContent = memo(function DesktopWindowContent({
+  appId,
+  state,
+  dispatch,
+  openApps,
+  terminalInsertCmd,
+  onSelectMail,
+  onOpenApp,
+  onInsertCommand,
+  onNotification,
+}) {
+  switch (appId) {
+    case 'terminal':
+      return (
+        <TerminalApp
+          state={state}
+          dispatch={dispatch}
+          insertCommand={terminalInsertCmd}
+          onNotification={onNotification}
+        />
+      );
+    case 'mail':
+      return (
+        <MailApp
+          state={state}
+          dispatch={dispatch}
+          onSelectMail={onSelectMail}
+          onOpenApp={onOpenApp}
+          onInsertCommand={onInsertCommand}
+          onNotification={onNotification}
+        />
+      );
+    case 'missions':
+      return <MissionApp state={state} openApps={openApps} />;
+    case 'profile':
+      return <ProfileApp state={state} />;
+    default:
+      return null;
+  }
+});
+
 export default function Desktop({ state, dispatch }) {
   const [windows, setWindows] = useState([]);
   const [activeWindow, setActiveWindow] = useState(null);
@@ -41,8 +82,7 @@ export default function Desktop({ state, dispatch }) {
     if (!app) return;
 
     if (appId === 'terminal') {
-      const count = state.narrativeFlags?.terminal_open_count ?? 0;
-      dispatch({ type: 'SET_NARRATIVE_FLAG', flag: 'terminal_open_count', value: count + 1 });
+      dispatch({ type: 'INCREMENT_NARRATIVE_FLAG', flag: 'terminal_open_count' });
     }
 
     setWindows((prev) => {
@@ -57,7 +97,7 @@ export default function Desktop({ state, dispatch }) {
       ];
     });
     setActiveWindow(appId);
-  }, [state.narrativeFlags, dispatch]);
+  }, [dispatch]);
 
   const closeWindow = useCallback((id) => {
     setWindows((prev) => prev.filter((w) => w.id !== id));
@@ -91,7 +131,7 @@ export default function Desktop({ state, dispatch }) {
     if (!state.narrativeFlags?.last_progress_at) {
       markProgress(state, dispatch);
     }
-  }, [state.tutorialCompleted, state.narrativeFlags, state, dispatch]);
+  }, [state.tutorialCompleted, state.narrativeFlags?.session_started_at, state.narrativeFlags?.last_progress_at, dispatch]);
 
   const unreadCount = useMemo(
     () => getUnlockedMails(state.unlockedMails, state).filter(
@@ -143,36 +183,13 @@ export default function Desktop({ state, dispatch }) {
     [terminalInsert]
   );
 
-  const renderContent = useCallback((id) => {
-    switch (id) {
-      case 'terminal':
-        return (
-          <TerminalApp
-            state={state}
-            dispatch={dispatch}
-            insertCommand={terminalInsertCmd}
-            onNotification={handleNotification}
-          />
-        );
-      case 'mail':
-        return (
-          <MailApp
-            state={state}
-            dispatch={dispatch}
-            onSelectMail={handleSelectMail}
-            onOpenApp={openApp}
-            onInsertCommand={handleInsertCommand}
-            onNotification={handleNotification}
-          />
-        );
-      case 'missions':
-        return <MissionApp state={state} openApps={openApps} />;
-      case 'profile':
-        return <ProfileApp state={state} />;
-      default:
-        return null;
-    }
-  }, [state, dispatch, terminalInsertCmd, handleSelectMail, handleNotification, openApp, handleInsertCommand, openApps]);
+  const topBarProps = useMemo(() => ({
+    username: state.username,
+    bittek: state.bittek,
+    reputation: state.reputation,
+    corruption: state.corruption,
+    suspicion: state.suspicionUltraTech ?? 0,
+  }), [state.username, state.bittek, state.reputation, state.corruption, state.suspicionUltraTech]);
 
   return (
     <div className="desktop">
@@ -181,13 +198,7 @@ export default function Desktop({ state, dispatch }) {
         suspicion={state.suspicionUltraTech ?? 0}
       />
 
-      <TopBar
-        username={state.username}
-        bittek={state.bittek}
-        reputation={state.reputation}
-        corruption={state.corruption}
-        suspicion={state.suspicionUltraTech ?? 0}
-      />
+      <TopBar {...topBarProps} />
 
       {activeHelp?.type === 'objective' && !ghostSignalDone && (
         <CurrentObjectiveWidget
@@ -223,7 +234,17 @@ export default function Desktop({ state, dispatch }) {
             onFocus={() => setActiveWindow(win.id)}
             onClose={() => closeWindow(win.id)}
           >
-            {renderContent(win.id)}
+            <DesktopWindowContent
+              appId={win.id}
+              state={state}
+              dispatch={dispatch}
+              openApps={openApps}
+              terminalInsertCmd={win.id === 'terminal' ? terminalInsertCmd : null}
+              onSelectMail={handleSelectMail}
+              onOpenApp={openApp}
+              onInsertCommand={handleInsertCommand}
+              onNotification={handleNotification}
+            />
           </Window>
         ))}
       </div>
