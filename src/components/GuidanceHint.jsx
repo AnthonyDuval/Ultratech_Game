@@ -72,15 +72,7 @@ const GuidanceHint = memo(function GuidanceHint({
               >
                 {copied ? 'Copié !' : 'Copier'}
               </button>
-              {terminalOpen ? (
-                <button
-                  type="button"
-                  className="btn btn-primary guidance-btn-insert"
-                  onClick={handleInsert}
-                >
-                  Insérer
-                </button>
-              ) : (
+              {!terminalOpen && (
                 <button
                   type="button"
                   className="btn btn-primary guidance-btn-open"
@@ -89,6 +81,13 @@ const GuidanceHint = memo(function GuidanceHint({
                   Ouvrir Terminal
                 </button>
               )}
+              <button
+                type="button"
+                className="btn btn-primary guidance-btn-insert"
+                onClick={handleInsert}
+              >
+                Insérer
+              </button>
             </div>
           </div>
         )}

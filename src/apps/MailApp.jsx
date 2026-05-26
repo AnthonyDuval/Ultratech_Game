@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback, memo } from 'react';
+import { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { getUnlockedMails, getMailsUnlockedByReading } from '../data/mails.js';
 import { onMailRead } from '../game/missionEngine.js';
+
+const READ_DELAY_MS = { min: 800, max: 1200 };
 
 const MailBriefActions = memo(function MailBriefActions({
   meta,
@@ -75,8 +77,34 @@ const MailApp = memo(function MailApp({ state, dispatch, onSelectMail, onOpenApp
   const { unlockedMails, readMails } = state;
   const mails = getUnlockedMails(unlockedMails);
   const [selectedId, setSelectedId] = useState(null);
+  const stateRef = useRef(state);
+  const pendingReadRef = useRef(null);
+
+  stateRef.current = state;
 
   const selected = mails.find((m) => m.id === selectedId) ?? mails[0] ?? null;
+
+  const markMailAsRead = useCallback((mailId) => {
+    const current = stateRef.current;
+    if (!mailId || current.readMails.includes(mailId)) return;
+    if (pendingReadRef.current === mailId) return;
+
+    pendingReadRef.current = mailId;
+
+    dispatch({ type: 'MARK_MAIL_READ', mailId });
+
+    const chained = getMailsUnlockedByReading(mailId);
+    if (chained.length) {
+      dispatch({ type: 'UNLOCK_MAILS', mailIds: chained });
+    }
+
+    const nextState = {
+      ...current,
+      readMails: [...current.readMails, mailId],
+      unlockedMails: [...new Set([...current.unlockedMails, ...chained])],
+    };
+    onMailRead(mailId, nextState, dispatch);
+  }, [dispatch]);
 
   useEffect(() => {
     if (selected?.id) onSelectMail?.(selected.id);
@@ -88,28 +116,31 @@ const MailApp = memo(function MailApp({ state, dispatch, onSelectMail, onOpenApp
     }
   }, [mails, selectedId]);
 
+  useEffect(() => {
+    const mailId = selected?.id;
+    if (!mailId || readMails.includes(mailId)) {
+      if (mailId && readMails.includes(mailId)) pendingReadRef.current = null;
+      return undefined;
+    }
+
+    const delay = READ_DELAY_MS.min + Math.floor(
+      Math.random() * (READ_DELAY_MS.max - READ_DELAY_MS.min)
+    );
+
+    const timer = setTimeout(() => {
+      markMailAsRead(mailId);
+    }, delay);
+
+    return () => clearTimeout(timer);
+  }, [selected?.id, readMails, markMailAsRead]);
+
   const unreadCount = mails.filter((m) => !readMails.includes(m.id)).length;
 
   const handleSelect = useCallback((mail) => {
+    pendingReadRef.current = null;
     setSelectedId(mail.id);
     onSelectMail?.(mail.id);
-
-    if (readMails.includes(mail.id)) return;
-
-    dispatch({ type: 'MARK_MAIL_READ', mailId: mail.id });
-
-    const chained = getMailsUnlockedByReading(mail.id);
-    if (chained.length) {
-      dispatch({ type: 'UNLOCK_MAILS', mailIds: chained });
-    }
-
-    const nextState = {
-      ...state,
-      readMails: [...readMails, mail.id],
-      unlockedMails: [...new Set([...unlockedMails, ...chained])],
-    };
-    onMailRead(mail.id, nextState, dispatch);
-  }, [state, readMails, unlockedMails, dispatch, onSelectMail]);
+  }, [onSelectMail]);
 
   if (!mails.length) {
     return <div className="mail-app empty">Aucun message.</div>;
@@ -131,7 +162,7 @@ const MailApp = memo(function MailApp({ state, dispatch, onSelectMail, onOpenApp
               onClick={() => handleSelect(mail)}
             >
               <div className="mail-item-top">
-                <span className="mail-item-from">{mail.from}</span>
+                <span className="mail-item-from">{mail.senderName ?? mail.from}</span>
                 {isUnread && (
                   <span className="mail-item-badge">NOUVEAU</span>
                 )}
@@ -148,7 +179,7 @@ const MailApp = memo(function MailApp({ state, dispatch, onSelectMail, onOpenApp
               <span className="mail-view-badge">NOUVEAU MESSAGE</span>
             )}
             <h3>{selected.subject}</h3>
-            <p>{selected.from} — {selected.date} {selected.time}</p>
+            <p>{selected.senderName ?? selected.from} — {selected.date} {selected.time}</p>
           </header>
           {selected.briefMeta && (
             <MailBriefActions

@@ -92,6 +92,24 @@ function buildGuidanceHelp(state, ui) {
   const completed = state.completedMissions ?? [];
   const flags = state.narrativeFlags ?? {};
 
+  if (
+    read.includes('mail-welcome')
+    && !flags.scan_0x7f
+    && !isGhostSignalDone(completed)
+    && hasAnonScanHelp(state)
+  ) {
+    return {
+      id: 'anon-scan-direct',
+      message: 'Un message anonyme vous donne une commande directe.',
+      target: '0x7f',
+      protocol: 'SCAN',
+      revealCommand: true,
+      command: 'scan 0x7f',
+      targetApp: has('terminal') ? undefined : 'terminal',
+      actionLabel: has('terminal') ? undefined : APP_LABELS.terminal,
+    };
+  }
+
   if (!read.includes('mail-welcome')) {
     return helpWelcome(has, selectedMailId);
   }
@@ -179,7 +197,7 @@ function helpMission1(state, flags, has, openApps) {
   if (!flags.scan_0x7f) {
     if (hasAnonScanHelp(state)) {
       return {
-        ...h('m1-anon-direct', 'Un contact anonyme vous donne une commande directe.', 'terminal'),
+        ...h('m1-anon-direct', 'Un message anonyme vous donne une commande directe.', 'terminal'),
         target: '0x7f',
         protocol: 'SCAN',
         revealCommand: true,
@@ -227,7 +245,7 @@ function helpMission1(state, flags, has, openApps) {
     const cmd = getSuggestedCommand(mission, flags) ?? 'connect 0x7f';
     return {
       id: 'm1-connect',
-      message: 'Analyse terminée. Établissez la connexion vers 0x7f.',
+      message: 'Analyse terminée. Essayez maintenant connect 0x7f.',
       target: '0x7f',
       protocol: 'CONNECT',
       revealCommand: true,

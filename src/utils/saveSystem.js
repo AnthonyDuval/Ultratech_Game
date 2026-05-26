@@ -65,11 +65,23 @@ function asString(value, fallback = '') {
   return typeof value === 'string' ? value : fallback;
 }
 
+function migrateSaveIds(raw) {
+  const replaceMailId = (id) => (id === 'mail-anon-scan-help' ? 'mail-anonymous-scan' : id);
+  const unlockedMails = asArray(raw.unlockedMails).map(replaceMailId);
+  const readMails = asArray(raw.readMails).map(replaceMailId);
+  const narrativeFlags = { ...asObject(raw.narrativeFlags) };
+  if (narrativeFlags.anon_scan_help_sent && !narrativeFlags.anonymousScanMailSent) {
+    narrativeFlags.anonymousScanMailSent = true;
+  }
+  return { unlockedMails, readMails, narrativeFlags };
+}
+
 /** Valide et nettoie une sauvegarde — retourne null si irrécupérable */
 export function sanitizeSave(raw) {
   if (!raw || typeof raw !== 'object') return null;
 
   const logs = asArray(raw.terminalLogs).filter((l) => typeof l === 'string');
+  const migrated = migrateSaveIds(raw);
 
   return {
     username: asString(raw.username),
@@ -79,9 +91,9 @@ export function sanitizeSave(raw) {
     suspicionUltraTech: asNumber(raw.suspicionUltraTech, 0),
     completedMissions: asArray(raw.completedMissions),
     discoveredMissions: asArray(raw.discoveredMissions),
-    unlockedMails: asArray(raw.unlockedMails),
-    readMails: asArray(raw.readMails),
-    narrativeFlags: asObject(raw.narrativeFlags),
+    unlockedMails: migrated.unlockedMails,
+    readMails: migrated.readMails,
+    narrativeFlags: migrated.narrativeFlags,
     discoveredNodes: asArray(raw.discoveredNodes),
     discoveredClues: asArray(raw.discoveredClues),
     missionSteps: asObject(raw.missionSteps),

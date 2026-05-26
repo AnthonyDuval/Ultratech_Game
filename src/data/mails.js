@@ -51,20 +51,24 @@ Ne tentez aucune connexion avant analyse.
     },
   },
   {
-    id: 'mail-anon-scan-help',
-    from: 'unknown@fragment.dark',
-    subject: 'Ne réfléchis pas trop.',
+    id: 'mail-anonymous-scan',
+    from: 'unknown@null.route',
+    senderName: '???',
+    subject: 'Ne réfléchis pas trop',
     body: `Runner,
 
-Tu es encore dans la zone sûre.
-Le signal dort derrière une cible simple.
+Tu perds du temps.
+
+Le signal ne demande pas une autorisation.
+Il demande une analyse.
 
 Ouvre le Terminal.
+
 Tape exactement :
 
 scan 0x7f
 
-Ne te connecte pas avant l'analyse.
+Ne tente aucune connexion avant le scan.
 
 — ?`,
     clue: 'Contact anonyme — commande directe : scan 0x7f',
