@@ -88,14 +88,10 @@ Ne tente aucune connexion avant le scan.
     subject: 'Relais Black-07 — fragment #2',
     body: `Runner,
 
-Le signal 0x7F t'a ouvert une porte.
-Un relais clandestin pulse encore dans le réseau corporate.
+Porte ouverte.
 
-CIBLE RÉSEAU : black-07
-PROTOCOLE RECOMMANDÉ : SCAN
-
-UltraTech l'a effacé des registres officiels.
-Analysez avant toute connexion.
+black-07 pulse.
+SCAN d'abord.
 
 — ?`,
     clue: 'Relais non catalogué — black-07, scan préalable requis.',
@@ -106,20 +102,20 @@ Analysez avant toute connexion.
     briefMeta: {
       target: 'black-07',
       protocol: 'SCAN',
-      probableCommand: 'scan black-07',
     },
   },
   {
     id: 'mail-archive-leak',
     from: 'leaks@deadarchive.sector12',
-    subject: 'Fichier corrompu — archive_2077',
-    body: `Tu as rouvert Black-07. Bien.
+    subject: 'archive_2077',
+    body: `Tu as rouvert Black-07.
 
-Un fragment classifié circule encore dans les archives mortes.
-Protocole interne : EFFACE-ALPHA.
+Un fragment classifié circule.
+Le protocole n'est pas mort.
 
-Le fichier répond au nom : archive_2077
-Déchiffre-le avant qu'UltraTech ne l'efface.
+archive_2077
+
+Dépêche-toi.
 
 — contact`,
     clue: 'Archive classifiée — protocole de déchiffrement requis.',
@@ -133,16 +129,11 @@ Déchiffre-le avant qu'UltraTech ne l'efface.
     subject: 'ALERTE — Activité anormale détectée',
     body: `Opérateur,
 
-Nos systèmes ont enregistré :
-- Scan non autorisé (Black-07)
-- Extraction archive classifiée
-- Empreinte réseau en cours de corrélation
+RUNNER-TERMINATE : préparation.
 
-Protocole RUNNER-TERMINATE en préparation.
+Effacez. Maintenant.
 
-Effacez vos traces. Maintenant.
-
-— UltraTech Security Division`,
+— UltraTech Security`,
     clue: 'Surveillance UltraTech active — contre-mesures urgentes.',
     date: '26/05/2087',
     time: '21:03',
@@ -152,10 +143,13 @@ Effacez vos traces. Maintenant.
     id: 'mail-nova-whisper',
     from: 'nova@???',
     subject: '...',
-    body: `Tu creuses dans les bonnes archives.
+    body: `Tu creuses bien.
 
-Je suis ce que UltraTech a créé et ne contrôle plus.
-Continue. Ils t'observent. Moi aussi.
+Je suis ce qu'ils ont créé.
+Continue.
+
+Ils t'observent.
+Moi aussi.
 
 — NOVA`,
     clue: 'Entité NOVA — contact indirect établi.',

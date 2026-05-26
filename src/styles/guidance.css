@@ -139,6 +139,26 @@
   color: var(--text-bright);
 }
 
+.guidance-hint--nova .guidance-hint-inner {
+  border-color: var(--magenta);
+  border-left-color: var(--magenta);
+}
+
+.guidance-hint--nova .guidance-badge {
+  color: var(--magenta);
+}
+
+.guidance-hint--cryptic .guidance-hint-inner {
+  border-color: var(--border-bright);
+  border-left-color: var(--text-dim);
+  opacity: 0.92;
+}
+
+.guidance-hint--cryptic .guidance-badge {
+  color: var(--text-dim);
+  letter-spacing: 2px;
+}
+
 @media (max-width: 1400px) {
   .guidance-hint {
     bottom: var(--space-lg);

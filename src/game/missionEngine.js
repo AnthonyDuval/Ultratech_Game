@@ -4,6 +4,7 @@
 
 import { MISSIONS, getMissionById, getMissionProgress, getMissionForFlag } from '../data/missions.js';
 import { getMailById } from '../data/mails.js';
+import { markProgress } from './stuckTimer.js';
 
 function clampStat(v, min = 0, max = 100) {
   return Math.min(max, Math.max(min, v));
@@ -29,6 +30,8 @@ export function onMailRead(mailId, state, dispatch) {
   if (mission) {
     discoverMission(mission.id, state, dispatch);
   }
+
+  markProgress(state, dispatch);
 }
 
 export function completeMission(missionId, state, dispatch) {
@@ -51,6 +54,8 @@ export function completeMission(missionId, state, dispatch) {
   if (mission.unlockMailsOnComplete?.length) {
     dispatch({ type: 'UNLOCK_MAILS', mailIds: mission.unlockMailsOnComplete });
   }
+
+  markProgress({ ...state, completedMissions: [...state.completedMissions, missionId] }, dispatch);
 }
 
 /** Enregistre une étape terminal dans missionSteps + narrativeFlags */

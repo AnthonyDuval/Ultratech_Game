@@ -13,6 +13,7 @@ import { recordTerminalProgress } from './missionEngine.js';
 import { getObjectiveContext, getHintContext, APPS_HELP } from './terminalHints.js';
 import { suggestCommandCorrection, suggestTargetCorrection } from './commandSuggestions.js';
 import { getProgressNotification } from './objectiveState.js';
+import { markProgress, recordTerminalCommand } from './stuckTimer.js';
 
 async function typeLines(addLine, lines, type = 'info', ms = 100) {
   for (const line of lines) {
@@ -24,6 +25,7 @@ async function typeLines(addLine, lines, type = 'info', ms = 100) {
 function applyFlag(flag, nodeId, state, dispatch) {
   if (state.narrativeFlags?.[flag]) return { applied: false };
   recordTerminalProgress(flag, nodeId, state, dispatch);
+  markProgress(state, dispatch);
   return {
     applied: true,
     notification: getProgressNotification(flag, state),
@@ -46,12 +48,14 @@ export async function executeTerminalCommand(cmd, state, dispatch, addLine) {
   const command = parts[0]?.toLowerCase() ?? '';
   const arg = parts.slice(1).join(' ').trim();
 
+  recordTerminalCommand(state, dispatch, trimmed);
+
   switch (command) {
     case 'help':
       if (!state.narrativeFlags?.used_help) {
         dispatch({ type: 'SET_NARRATIVE_FLAG', flag: 'used_help', value: true });
       }
-      addLine(getHelpText(arg || undefined), 'info');
+      addLine(getHelpText(state, arg || undefined), 'info');
       break;
 
     case 'objectif': {

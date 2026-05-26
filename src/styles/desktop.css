@@ -304,6 +304,11 @@
   border-left: 4px solid var(--magenta);
 }
 
+.desktop-toast--nova-whisper {
+  border-left: 4px solid var(--magenta);
+  box-shadow: 0 0 20px rgba(217, 140, 255, 0.12);
+}
+
 .desktop-toast-title {
   display: block;
   font-family: var(--font-mono);

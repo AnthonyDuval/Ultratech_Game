@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import TopBar from './TopBar.jsx';
 import DesktopIcon from './DesktopIcon.jsx';
 import Window from './Window.jsx';
@@ -14,6 +14,8 @@ import MissionApp from '../apps/MissionApp.jsx';
 import ProfileApp from '../apps/ProfileApp.jsx';
 import { useAutoSave } from '../hooks/useAutoSave.js';
 import { useAnonScanHelp } from '../hooks/useAnonScanHelp.js';
+import { useStuckTimer } from '../hooks/useStuckTimer.js';
+import { markProgress } from '../game/stuckTimer.js';
 import { getUnlockedMails } from '../data/mails.js';
 import { getActiveHelp, shouldSuppressDesktopNotifs } from '../game/activeHelp.js';
 
@@ -38,6 +40,11 @@ export default function Desktop({ state, dispatch }) {
     const app = APPS.find((a) => a.id === appId);
     if (!app) return;
 
+    if (appId === 'terminal') {
+      const count = state.narrativeFlags?.terminal_open_count ?? 0;
+      dispatch({ type: 'SET_NARRATIVE_FLAG', flag: 'terminal_open_count', value: count + 1 });
+    }
+
     setWindows((prev) => {
       if (prev.some((w) => w.id === appId)) {
         setActiveWindow(appId);
@@ -50,7 +57,7 @@ export default function Desktop({ state, dispatch }) {
       ];
     });
     setActiveWindow(appId);
-  }, []);
+  }, [state.narrativeFlags, dispatch]);
 
   const closeWindow = useCallback((id) => {
     setWindows((prev) => prev.filter((w) => w.id !== id));
@@ -74,6 +81,17 @@ export default function Desktop({ state, dispatch }) {
   const dismissToast = useCallback(() => setToast(null), []);
 
   useAnonScanHelp(state, dispatch, setToast);
+  useStuckTimer(state, dispatch, setToast);
+
+  useEffect(() => {
+    if (!state.tutorialCompleted) return;
+    if (!state.narrativeFlags?.session_started_at) {
+      dispatch({ type: 'SET_NARRATIVE_FLAG', flag: 'session_started_at', value: new Date().toISOString() });
+    }
+    if (!state.narrativeFlags?.last_progress_at) {
+      markProgress(state, dispatch);
+    }
+  }, [state.tutorialCompleted, state.narrativeFlags, state, dispatch]);
 
   const unreadCount = useMemo(
     () => getUnlockedMails(state.unlockedMails).filter(

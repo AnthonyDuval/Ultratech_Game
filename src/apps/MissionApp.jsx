@@ -13,7 +13,15 @@ import {
   getMissionActivityLabel,
   isGuidedMission,
 } from '../data/missions.js';
-import { hasAnonScanHelp, shouldRevealScanCommand, isGhostSignalDone } from '../game/missionGuards.js';
+import {
+  hasAnonScanHelp,
+  shouldRevealScanCommand,
+  isGhostSignalDone,
+} from '../game/missionGuards.js';
+import {
+  computeGuidanceLevel,
+  shouldShowMissionCommand,
+} from '../game/guidanceLevel.js';
 
 const MissionCard = memo(function MissionCard({
   mission,
@@ -22,6 +30,7 @@ const MissionCard = memo(function MissionCard({
   readMails,
   unlockedMails,
   openApps,
+  guidanceLevel,
 }) {
   const progress = getMissionProgress(mission, narrativeFlags);
   const step = getCurrentStep(mission, narrativeFlags);
@@ -32,6 +41,7 @@ const MissionCard = memo(function MissionCard({
   const activity = getMissionActivityStatus(mission, narrativeFlags, completedMissions);
   const activityLabel = getMissionActivityLabel(activity);
   const guided = isGuidedMission(mission);
+  const isFree = mission.guidanceLevel === 'free';
   const nextStep = getNextStepText(mission, narrativeFlags);
   const currentObjective = getCurrentObjective(mission, narrativeFlags);
   const suggested = getSuggestedCommand(mission, narrativeFlags);
@@ -39,22 +49,24 @@ const MissionCard = memo(function MissionCard({
   const protocol = getStepProtocol(mission, narrativeFlags);
   const statusClass = activity === 'pending' ? 'ops-status--pending' : 'ops-status--active';
 
+  const stateSlice = { readMails, unlockedMails, narrativeFlags, completedMissions };
   const isM1ScanPending = mission.id === 'ghost-signal'
     && step?.flag === 'scan_0x7f'
     && !narrativeFlags.scan_0x7f;
 
-  const stateSlice = { readMails, unlockedMails, narrativeFlags };
   const showCommand = isM1ScanPending
     ? shouldRevealScanCommand(stateSlice, openApps)
-    : Boolean(suggested);
+    : shouldShowMissionCommand(stateSlice, mission);
 
   const displayObjective = isM1ScanPending ? 'Analyser la cible 0x7f' : currentObjective;
   const displayHint = isM1ScanPending && !hasAnonScanHelp(stateSlice)
     ? 'Un contact anonyme pourrait vous aider si vous hésitez.'
-    : step?.hint;
+    : (guidanceLevel >= 2 && step?.rpHint) ? step.rpHint : step?.hint;
+
+  const showJournal = guided || isFree;
 
   return (
-    <article className={`ops-card ops-card--active ${guided ? 'ops-card--guided' : ''}`}>
+    <article className={`ops-card ops-card--active ${guided ? 'ops-card--guided' : ''} ${isFree ? 'ops-card--free' : ''}`}>
       <div className="ops-card-top">
         <span className={`ops-status ${statusClass}`}>{activityLabel}</span>
         <span className="ops-step-count">Étape {stepIndex}/{stepTotal}</span>
@@ -70,9 +82,9 @@ const MissionCard = memo(function MissionCard({
         <div className="mission-progress-fill" style={{ width: `${progress * 100}%` }} />
       </div>
 
-      {guided ? (
+      {showJournal ? (
         <div className="ops-journal">
-          {nextStep && (
+          {nextStep && guided && (
             <div className="ops-journal-block">
               <span className="ops-journal-label">Étape suivante</span>
               <p className="ops-journal-value">{isM1ScanPending ? 'Ouvrir le Terminal' : nextStep}</p>
@@ -96,7 +108,7 @@ const MissionCard = memo(function MissionCard({
           )}
           {displayHint && (
             <div className="ops-journal-block ops-journal-block--hint">
-              <span className="ops-journal-label">Indice</span>
+              <span className="ops-journal-label">{isFree ? 'Fragment' : 'Indice'}</span>
               <p className="ops-journal-value">{displayHint}</p>
             </div>
           )}
@@ -133,6 +145,8 @@ export default function MissionApp({ state, openApps = [] }) {
     readMails,
     unlockedMails,
   } = state;
+
+  const guidanceLevel = useMemo(() => computeGuidanceLevel(state), [state]);
 
   const active = useMemo(
     () => getActiveDiscoveredMissions(discoveredMissions, completedMissions),
@@ -176,6 +190,7 @@ export default function MissionApp({ state, openApps = [] }) {
               readMails={readMails}
               unlockedMails={unlockedMails}
               openApps={openApps}
+              guidanceLevel={guidanceLevel}
             />
           ))
         )}

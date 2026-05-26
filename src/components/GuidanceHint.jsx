@@ -38,9 +38,10 @@ const GuidanceHint = memo(function GuidanceHint({
   const terminalOpen = openApps.includes('terminal');
   const targetApp = help.targetApp;
   const showOpen = targetApp && !openApps.includes(targetApp);
+  const toneClass = help.tone === 'nova' ? 'guidance-hint--nova' : help.tone === 'cryptic' ? 'guidance-hint--cryptic' : '';
 
   return (
-    <aside className="guidance-hint" role="status" aria-live="polite">
+    <aside className={`guidance-hint ${toneClass}`} role="status" aria-live="polite">
       <div className="guidance-hint-inner">
         <span className="guidance-badge">{help.title ?? 'PROCHAINE ACTION'}</span>
         <p className="guidance-text">{help.message}</p>
